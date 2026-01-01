@@ -1,0 +1,107 @@
+
+import React from 'react';
+
+interface FooterProps {
+  onNavigate: (view: any) => void;
+}
+
+const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="bg-white border-t border-slate-100 pt-32 pb-16">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-20 lg:gap-8 mb-32">
+          
+          {/* Brand Info */}
+          <div className="lg:col-span-4 space-y-10">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('home')}>
+              <div className="w-12 h-12 bg-[#FF4F00] rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/10">
+                <span className="text-white font-black text-2xl">K</span>
+              </div>
+              <span className="text-3xl font-black tracking-tighter uppercase text-slate-900">KOOP<span className="text-[#FF4F00]">.</span></span>
+            </div>
+            <p className="text-slate-500 font-medium leading-relaxed max-w-sm text-lg">
+              De nummer één premium marktplaats voor geverifieerde tweedehands design en technologie in Nederland.
+            </p>
+            <div className="flex gap-4">
+              {['instagram', 'linkedin', 'twitter'].map(social => (
+                <a key={social} href="#" className="w-12 h-12 rounded-2xl border border-slate-100 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all transform hover:-translate-y-1">
+                  <span className="sr-only">{social}</span>
+                  <div className="w-5 h-5 bg-current rounded-sm opacity-20" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Links Grid */}
+          <div className="lg:col-span-2 lg:ml-auto space-y-8">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Shop</h4>
+            <ul className="space-y-5">
+              <li><button onClick={() => onNavigate('shop')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">Collectie</button></li>
+              <li><button onClick={() => onNavigate('sell')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">Verkopen</button></li>
+              <li><button onClick={() => onNavigate('shop')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">Nieuw Binnen</button></li>
+            </ul>
+          </div>
+
+          <div className="lg:col-span-2 space-y-8">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Support</h4>
+            <ul className="space-y-5">
+              <li><button onClick={() => onNavigate('about')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">Over Koop</button></li>
+              <li><button onClick={() => onNavigate('faq')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">FAQ</button></li>
+              <li><button onClick={() => onNavigate('contact')} className="text-sm font-bold text-slate-600 hover:text-[#FF4F00] transition-colors uppercase tracking-widest">Contact</button></li>
+            </ul>
+          </div>
+
+          <div className="lg:col-span-4 space-y-10">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Betaal Veilig</h4>
+            <div className="flex flex-wrap items-center gap-8 grayscale opacity-40">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-6" alt="iDEAL" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/PostNL_logo.svg" className="h-7" alt="PostNL" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b3/DHL_Express_logo.svg" className="h-4" alt="DHL" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" alt="Visa" />
+            </div>
+            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed">
+                 Alle betalingen worden beveiligd door Stripe Connect e iDEAL. 100% kopersbescherming.
+               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="pt-16 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-12">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+              © {currentYear} KOOP MARKETPLACE B.V.
+            </p>
+            
+            {/* Small Refined brenodiogo.com Credit */}
+            <a 
+              href="https://brenodiogo.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="group flex items-center gap-2.5 bg-slate-50/80 px-4 py-2 rounded-xl hover:bg-slate-900 transition-all duration-500 border border-slate-100/50"
+            >
+              <div className="flex items-center gap-1 text-sky-500 group-hover:text-sky-400 transition-colors">
+                <span className="font-black text-[10px]">&lt;</span>
+                <span className="font-black text-[10px]">&gt;</span>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 group-hover:text-white transition-colors">
+                MADE BY <span className="text-slate-900 group-hover:text-sky-400 transition-colors">BRENODIOGO.COM</span>
+              </span>
+            </a>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-10">
+            <button onClick={() => onNavigate('privacy')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors">Privacy Policy</button>
+            <button onClick={() => onNavigate('terms')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors">Voorwaarden</button>
+            <button onClick={() => onNavigate('cookies')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 transition-colors">Cookies</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
