@@ -1,15 +1,55 @@
-// ATUALIZAÇÃO DO TIPO PRODUCT
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  SELLER = 'SELLER',
+  BUYER = 'BUYER'
+}
+
+export enum ProductCondition {
+  NEW = 'NEW',
+  LIKE_NEW = 'LIKE_NEW',
+  GOOD = 'GOOD',
+  FAIR = 'FAIR'
+}
+
+export enum ProductStatus {
+  ACTIVE = 'ACTIVE',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  SOLD = 'SOLD'
+}
+
 export interface Product {
-  // ... campos existentes
+  id: string;
+  sellerId: string;
+  title: string;
+  description: string;
+  price: number;
+  condition: ProductCondition;
+  status: ProductStatus;
+  category: string;
+  image: string;
+  commissionRate: number;
+  commissionAmount: number;
   sku: string;
   barcode: string;
   weight: number;
   dimensions: string;
-  originCountry: string; // Código ISO (ex: 'NL', 'CN')
-  estimatedDelivery: string; // '3-5 dias úteis'
+  originCountry: string;
+  estimatedDelivery: string;
   shippingMethods: string[];
-  warehouseLocation: string; // Código do armazém
-  supplierId?: string; // ID do revendedor
+  warehouseLocation: string;
+  supplierId?: string;
   is3DModel: boolean;
-  modelGLB?: string; // URL do modelo 3D
+  modelGLB?: string;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  role: UserRole;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  verificationStatus?: VerificationStatus;
+}
+
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
