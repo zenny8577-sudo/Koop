@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types';
+import Logo from '../Branding/Logo';
 
 interface NavbarProps {
   onHome: () => void;
@@ -15,6 +16,7 @@ interface NavbarProps {
   cartCount: number;
 }
 
+// Completed the truncated Navbar component and added the default export to fix the import error in App.tsx
 const Navbar: React.FC<NavbarProps> = ({ 
   onHome, onShop, onAdmin, onOpenCart, onOpenLogin, onDashboard, onSell, onLogout, user, cartCount 
 }) => {
@@ -34,11 +36,8 @@ const Navbar: React.FC<NavbarProps> = ({
     <nav className="sticky top-0 z-[100] bg-white/70 backdrop-blur-2xl border-b border-slate-100/50">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-24 flex items-center justify-between">
         {/* Logo */}
-        <div onClick={onHome} className="cursor-pointer group flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#FF4F00] rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-500">
-            <span className="text-white font-black text-xl">K</span>
-          </div>
-          <span className="text-2xl font-black tracking-tighter uppercase">KOOP<span className="text-[#FF4F00]">.</span></span>
+        <div onClick={onHome} className="cursor-pointer">
+          <Logo size="md" variant="dark" />
         </div>
 
         {/* Navigation */}
@@ -74,48 +73,58 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
           </div>
-
-          <button onClick={onSell} className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors">Verkopen bij ons</button>
-          
-          {user?.role === UserRole.ADMIN && (
-            <button onClick={onAdmin} className="text-[11px] font-black uppercase tracking-widest text-[#FF4F00] bg-orange-50 px-4 py-2 rounded-full border border-orange-100 hover:bg-[#FF4F00] hover:text-white transition-all">Admin Panel</button>
-          )}
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-8">
-          <div className="relative" onMouseEnter={() => setIsUserMenuOpen(true)} onMouseLeave={() => setIsUserMenuOpen(false)}>
-            <button onClick={user ? onDashboard : onOpenLogin} className="text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all flex items-center gap-2 py-4">
-              <div className="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center overflow-hidden bg-slate-50">
-                {user ? (
-                  <img src={`https://ui-avatars.com/api/?name=${user.email}&background=FF4F00&color=fff`} className="w-full h-full" alt="User" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                )}
-              </div>
-              {user ? 'Mijn Account' : 'Inloggen'}
-            </button>
-
-            {user && (
-              <div className={`absolute top-full right-0 w-48 bg-white rounded-3xl shadow-xl border border-slate-100 p-4 transition-all duration-300 origin-top ${isUserMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-2'}`}>
-                <button onClick={onDashboard} className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all">Dashboard</button>
-                <button onClick={onLogout} className="w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-xl transition-all">Uitloggen</button>
-              </div>
-            )}
-          </div>
-
-          <button onClick={onOpenCart} className="relative group">
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white transform transition-transform group-hover:-translate-y-1 shadow-xl">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 11-8 0m-4 7v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2m4 6V7a4 4 0 018 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
+          <button 
+            onClick={onOpenCart}
+            className="relative p-2 text-slate-900 hover:text-[#FF4F00] transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#FF4F00] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+              <span className="absolute -top-1 -right-1 bg-[#FF4F00] text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
                 {cartCount}
               </span>
             )}
           </button>
+
+          {user ? (
+            <div className="relative" onMouseEnter={() => setIsUserMenuOpen(true)} onMouseLeave={() => setIsUserMenuOpen(false)}>
+              <button 
+                onClick={onDashboard}
+                className="flex items-center gap-3 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl shadow-slate-200"
+              >
+                Dashboard
+              </button>
+              
+              <div className={`absolute top-full right-0 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 mt-2 py-4 transition-all duration-300 origin-top-right ${isUserMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-2'}`}>
+                <button onClick={onDashboard} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">Overzicht</button>
+                {user.role === UserRole.ADMIN && (
+                  <button onClick={onAdmin} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">Admin Panel</button>
+                )}
+                <div className="my-2 border-t border-slate-100" />
+                <button onClick={onLogout} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">Uitloggen</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={onOpenLogin}
+                className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors"
+              >
+                Inloggen
+              </button>
+              <button 
+                onClick={onSell}
+                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl shadow-slate-200"
+              >
+                Verkopen
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>

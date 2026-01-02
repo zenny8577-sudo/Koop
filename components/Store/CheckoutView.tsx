@@ -8,16 +8,29 @@ interface CheckoutViewProps {
   onBack: () => void;
 }
 
+const shippingPrices: Record<string, number> = {
+  postnl: 6.95,
+  dhl: 8.50,
+  fedex: 12.95
+};
+
+const shippingLabels: Record<string, string> = {
+  postnl: 'PostNL Verzekerd',
+  dhl: 'DHL Express',
+  fedex: 'FedEx Priority'
+};
+
 const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }) => {
   const [step, setStep] = useState<'info' | 'shipping' | 'payment'>('info');
   const [address, setAddress] = useState<Address>({
     firstName: '', lastName: '', email: '', street: '', houseNumber: '', city: '', zipCode: '', phone: ''
   });
-  const [shippingMethod, setShippingMethod] = useState<'postnl' | 'dhl'>('postnl');
+  const [shippingMethod, setShippingMethod] = useState<'postnl' | 'dhl' | 'fedex'>('postnl');
   const [paymentMethod, setPaymentMethod] = useState<'ideal' | 'card'>('ideal');
 
   const subtotal = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const total = subtotal + 6.95;
+  const shippingFee = shippingPrices[shippingMethod];
+  const total = subtotal + shippingFee;
 
   const InputField = ({ label, value, onChange, placeholder, type = "text", half = false }: any) => (
     <div className={`space-y-2 ${half ? 'md:w-1/2' : 'w-full'}`}>
@@ -92,18 +105,41 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
               <div className="space-y-16">
                 <section className="space-y-8">
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Verzendmethode</h2>
-                  <div className="p-8 rounded-[40px] border-2 border-[#FF4F00] bg-orange-50/20 flex items-center justify-between">
-                    <div>
-                      <p className="font-black text-slate-900 uppercase tracking-widest text-sm">PostNL Verzekerd</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Geverifieerde levering binnen 2 werkdagen</p>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Kies uw bezorger</label>
+                    <div className="relative group">
+                      <select 
+                        value={shippingMethod}
+                        onChange={(e) => setShippingMethod(e.target.value as any)}
+                        className="w-full bg-slate-50 border-none rounded-[32px] px-8 py-6 text-sm font-black uppercase tracking-widest outline-none appearance-none cursor-pointer focus:ring-4 focus:ring-orange-500/10 transition-all"
+                      >
+                        <option value="postnl">PostNL Verzekerd (€ 6,95)</option>
+                        <option value="dhl">DHL Express (€ 8,50)</option>
+                        <option value="fedex">FedEx Priority (€ 12,95)</option>
+                      </select>
+                      <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
                     </div>
-                    <span className="font-black text-slate-900">€ 6,95</span>
+                  </div>
+
+                  <div className="p-10 rounded-[48px] border-2 border-[#FF4F00] bg-orange-50/20 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-black text-slate-900 uppercase tracking-widest text-base">{shippingLabels[shippingMethod]}</p>
+                      <span className="font-black text-slate-900 text-lg">€ {shippingFee.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight">
+                      {shippingMethod === 'postnl' && 'Geverifieerde levering binnen 2 werkdagen via het nationale netwerk.'}
+                      {shippingMethod === 'dhl' && 'Versnelde premium levering binnen 24 uur na verwerking.'}
+                      {shippingMethod === 'fedex' && 'Hoogste prioriteit e extra beveiligde handling voor luxe items.'}
+                    </p>
                   </div>
                 </section>
 
                 <button 
                   onClick={() => setStep('payment')}
-                  className="w-full py-8 bg-slate-900 text-white font-black rounded-[40px] uppercase tracking-widest text-[13px] hover:bg-[#FF4F00] transition-all"
+                  className="w-full py-8 bg-slate-900 text-white font-black rounded-[40px] uppercase tracking-widest text-[13px] hover:bg-[#FF4F00] transition-all shadow-2xl shadow-slate-200"
                 >
                   Ga naar Betaling
                 </button>
@@ -119,7 +155,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                       onClick={() => setPaymentMethod('ideal')}
                       className={`p-8 rounded-[40px] border-2 cursor-pointer transition-all flex items-center gap-6 ${paymentMethod === 'ideal' ? 'border-[#FF4F00] bg-orange-50/20' : 'border-slate-50 hover:border-slate-200'}`}
                     >
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-5" />
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-5" alt="iDEAL" />
                       <span className="font-black text-slate-900 uppercase tracking-widest text-sm">iDEAL</span>
                     </div>
                     <div 
@@ -127,8 +163,8 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                       className={`p-8 rounded-[40px] border-2 cursor-pointer transition-all flex items-center gap-6 ${paymentMethod === 'card' ? 'border-[#FF4F00] bg-orange-50/20' : 'border-slate-50 hover:border-slate-200'}`}
                     >
                       <div className="flex gap-2">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" alt="Visa" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4" alt="Mastercard" />
                       </div>
                       <span className="font-black text-slate-900 uppercase tracking-widest text-sm">Creditcard</span>
                     </div>
@@ -153,7 +189,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
               <div key={item.product.id} className="flex gap-6 items-center">
                 <div className="relative shrink-0">
                   <div className="w-24 h-24 bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <img src={item.product.image} className="w-full h-full object-cover" />
+                    <img src={item.product.image} className="w-full h-full object-cover" alt={item.product.title} />
                   </div>
                   <span className="absolute -top-3 -right-3 bg-slate-900 text-white text-[10px] font-black w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                     {item.quantity}
@@ -163,7 +199,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                   <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">{item.product.title}</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.product.category}</p>
                 </div>
-                <p className="text-sm font-black text-slate-900">€ {(item.product.price * item.quantity).toLocaleString()}</p>
+                <p className="text-sm font-black text-slate-900">€ {(item.product.price * item.quantity).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</p>
               </div>
             ))}
           </div>
@@ -171,18 +207,18 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
           <div className="space-y-6 pt-12 border-t border-slate-200">
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Subtotaal</span>
-              <span className="font-black text-slate-900">€ {subtotal.toLocaleString()}</span>
+              <span className="font-black text-slate-900">€ {subtotal.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Verzending (Verzekerd)</span>
-              <span className="font-black text-slate-900">€ 6,95</span>
+              <span className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Verzending ({shippingLabels[shippingMethod]})</span>
+              <span className="font-black text-slate-900">€ {shippingFee.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="flex justify-between items-end pt-10 mt-10 border-t border-slate-200">
               <div>
                 <span className="text-slate-900 font-black uppercase tracking-tighter text-2xl block leading-none">Totaal</span>
                 <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">Inclusief BTW</span>
               </div>
-              <span className="text-5xl font-black text-slate-900 tracking-tighter">€ {total.toLocaleString()}</span>
+              <span className="text-5xl font-black text-slate-900 tracking-tighter">€ {total.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         </div>

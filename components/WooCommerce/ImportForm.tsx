@@ -1,111 +1,137 @@
 
 import React, { useState } from 'react';
-import { ICONS } from '../../constants';
+import { db } from '../../services/db';
 
 const ImportForm: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [importedCount, setImportedCount] = useState<number | null>(null);
 
-  const handleImport = (e: React.FormEvent) => {
+  const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsImporting(true);
+    setImportedCount(null);
+    
+    // Animação de progresso
     let p = 0;
     const interval = setInterval(() => {
-      p += 5;
+      p += Math.floor(Math.random() * 10) + 2;
+      if (p >= 100) p = 100;
       setProgress(p);
-      if (p >= 100) {
-        clearInterval(interval);
-        setTimeout(() => setIsImporting(false), 500);
-      }
-    }, 100);
+      if (p >= 100) clearInterval(interval);
+    }, 200);
+
+    // Sync real no banco de dados
+    const count = Math.floor(Math.random() * 8) + 3;
+    await db.syncWooCommerce(count);
+    
+    setTimeout(() => {
+      setIsImporting(false);
+      setImportedCount(count);
+      setProgress(0);
+    }, 3000);
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-fadeIn">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-        <div className="bg-slate-900 p-8 text-white">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-[#96588a] rounded-xl flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current"><path d="M22.5,12A10.5,10.5 0 0,1 12,22.5A10.5,10.5 0 0,1 1.5,12A10.5,10.5 0 0,1 12,1.5A10.5,10.5 0 0,1 22.5,12M20.25,12A8.25,8.25 0 0,0 12,3.75A8.25,8.25 0 0,0 3.75,12A8.25,8.25 0 0,0 12,20.25A8.25,8.25 0 0,0 20.25,12M7.5,13.5H16.5V15H7.5V13.5M7.5,10.5H16.5V12H7.5V10.5M7.5,7.5H16.5V9H7.5V7.5Z" /></svg>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">WooCommerce Sync</h2>
-              <p className="text-slate-400 text-sm">Importeer je bestaande producten direct naar Koop.</p>
-            </div>
+    <div className="max-w-3xl mx-auto animate-fadeIn space-y-8">
+      <div className="bg-white rounded-[60px] border border-slate-100 shadow-2xl overflow-hidden">
+        <div className="bg-slate-950 p-12 lg:p-20 text-white relative">
+          <div className="absolute top-0 right-0 p-10 opacity-10">
+            <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M22.5,12A10.5,10.5 0 0,1 12,22.5A10.5,10.5 0 0,1 1.5,12A10.5,10.5 0 0,1 12,1.5A10.5,10.5 0 0,1 22.5,12M20.25,12A8.25,8.25 0 0,0 12,3.75A8.25,8.25 0 0,0 3.75,12A8.25,8.25 0 0,0 12,20.25A8.25,8.25 0 0,0 20.25,12M7.5,13.5H16.5V15H7.5V13.5M7.5,10.5H16.5V12H7.5V10.5M7.5,7.5H16.5V9H7.5V7.5Z" /></svg>
+          </div>
+          <div className="relative z-10 space-y-6 text-center lg:text-left">
+            <h2 className="text-5xl font-black uppercase tracking-tighter leading-tight">Sync <span className="text-[#FF4F00]">Store.</span></h2>
+            <p className="text-white/40 font-medium max-w-sm leading-relaxed">Conecte sua loja WooCommerce e importe produtos instantaneamente com curadoria automática.</p>
           </div>
         </div>
 
-        <form onSubmit={handleImport} className="p-8 space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Store URL</label>
+        <form onSubmit={handleImport} className="p-12 lg:p-20 space-y-10">
+          <div className="grid grid-cols-1 gap-8">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Endpoint API URL</label>
               <input 
                 type="url" 
                 placeholder="https://jouwshop.nl"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[32px] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-bold text-sm"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Consumer Key</label>
-              <input 
-                type="password" 
-                placeholder="ck_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Consumer Secret</label>
-              <input 
-                type="password" 
-                placeholder="cs_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Consumer Key</label>
+                  <input 
+                    type="password" 
+                    placeholder="ck_..."
+                    className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[32px] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-bold text-sm"
+                    required
+                  />
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Consumer Secret</label>
+                  <input 
+                    type="password" 
+                    placeholder="cs_..."
+                    className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[32px] focus:ring-4 focus:ring-orange-500/10 outline-none transition-all font-bold text-sm"
+                    required
+                  />
+               </div>
             </div>
           </div>
 
-          <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex gap-3">
-             <div className="text-orange-500 shrink-0">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className="bg-orange-50/50 border border-orange-100 p-8 rounded-[40px] flex gap-5">
+             <div className="text-[#FF4F00] shrink-0 pt-1">
+               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
              </div>
-             <p className="text-xs text-orange-800 leading-relaxed">
-               Wij syncen automatisch je voorraad en prijzen. Commissies worden berekend op basis van je huidige verkoperstier.
+             <p className="text-[11px] text-slate-600 leading-relaxed font-bold uppercase tracking-tight">
+               Ao iniciar a sincronização, aplicaremos automaticamente as taxas de comissão (Tier Premium: 12%) e marcaremos os itens como "Pendente de Curadoria" para garantir a qualidade Koop.
              </p>
           </div>
 
-          <button 
-            type="submit"
-            disabled={isImporting}
-            className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg transition-all ${isImporting ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#FF4F00] hover:bg-[#E04600] shadow-orange-500/20'}`}
-          >
-            {isImporting ? `Synchroniseren... ${progress}%` : 'Start Import'}
-          </button>
+          <div className="pt-6">
+            <button 
+              type="submit"
+              disabled={isImporting}
+              className={`w-full py-8 rounded-[32px] text-white font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl transition-all ${isImporting ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#FF4F00] hover:bg-slate-900 shadow-orange-500/20 transform hover:-translate-y-1'}`}
+            >
+              {isImporting ? `Synchroniseren... ${progress}%` : 'Start Importatie Now'}
+            </button>
+          </div>
 
           {isImporting && (
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden mt-6">
               <div 
                 className="bg-[#FF4F00] h-full transition-all duration-300" 
                 style={{ width: `${progress}%` }}
               />
             </div>
           )}
+
+          {importedCount !== null && (
+            <div className="mt-8 p-10 bg-emerald-50 rounded-[40px] border border-emerald-100 flex items-center gap-6 animate-bounce">
+               <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+               </div>
+               <div>
+                  <h4 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Sincronização Concluída</h4>
+                  <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-1">{importedCount} novos produtos adicionados ao inventário.</p>
+               </div>
+            </div>
+          )}
         </form>
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-        <div className="p-4 bg-white rounded-xl border border-slate-100">
-          <p className="text-xs text-slate-400 mb-1">Items Gedetecteerd</p>
-          <p className="text-xl font-bold text-slate-900">1.250+</p>
+      <div className="grid grid-cols-3 gap-6">
+        <div className="p-10 bg-white rounded-[40px] border border-slate-100 text-center">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Auto Tagging</p>
+          <p className="text-xl font-black text-slate-900 uppercase">Active</p>
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-100">
-          <p className="text-xs text-slate-400 mb-1">Gem. Tijd</p>
-          <p className="text-xl font-bold text-slate-900">&lt; 2 min</p>
+        <div className="p-10 bg-white rounded-[40px] border border-slate-100 text-center">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Price Sync</p>
+          <p className="text-xl font-black text-slate-900 uppercase">Live</p>
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-100">
-          <p className="text-xs text-slate-400 mb-1">Succes Ratio</p>
-          <p className="text-xl font-bold text-emerald-600">99.8%</p>
+        <div className="p-10 bg-white rounded-[40px] border border-slate-100 text-center">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Inventory Link</p>
+          <p className="text-xl font-black text-emerald-500 uppercase">Healthy</p>
         </div>
       </div>
     </div>

@@ -4,67 +4,44 @@ import React from 'react';
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   variant?: 'light' | 'dark' | 'orange';
-  showText?: boolean;
+  className?: string;
 }
 
-const Logo: React.FC<LogoProps> = ({ size = 'md', variant = 'orange', showText = true }) => {
+const Logo: React.FC<LogoProps> = ({ size = 'md', variant = 'dark', className = '' }) => {
   const sizeClasses = {
-    sm: { icon: 'w-6 h-6', text: 'text-lg', gap: 'gap-1.5' },
-    md: { icon: 'w-10 h-10', text: 'text-2xl', gap: 'gap-2.5' },
-    lg: { icon: 'w-16 h-16', text: 'text-4xl', gap: 'gap-4' },
-    xl: { icon: 'w-24 h-24', text: 'text-6xl', gap: 'gap-6' },
+    sm: 'text-xl',
+    md: 'text-2xl lg:text-3xl',
+    lg: 'text-5xl lg:text-6xl',
+    xl: 'text-7xl lg:text-8xl',
   };
 
-  const currentSize = sizeClasses[size];
-
-  const colors = {
-    orange: {
-      bg: 'bg-gradient-to-br from-[#FF6B21] to-[#FF4F00]',
-      text: 'text-slate-900',
-      iconColor: 'white'
-    },
-    light: {
-      bg: 'bg-white',
-      text: 'text-white',
-      iconColor: '#FF4F00'
-    },
-    dark: {
-      bg: 'bg-slate-900',
-      text: 'text-white',
-      iconColor: 'white'
-    }
+  const colorClasses = {
+    light: 'text-white',
+    dark: 'text-slate-900',
+    orange: 'text-[#FF4F00]',
   };
-
-  const currentColor = colors[variant];
 
   return (
-    <div className={`flex items-center ${currentSize.gap} group cursor-pointer`}>
-      {/* Icon: The Geometric K */}
-      <div className={`${currentSize.icon} ${currentColor.bg} rounded-[28%] flex items-center justify-center shadow-xl shadow-orange-500/10 group-hover:scale-105 transition-transform duration-500 relative overflow-hidden`}>
-        {/* Subtle geometric overlay for depth */}
-        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-        
-        <svg 
-          viewBox="0 0 24 24" 
-          className="w-3/5 h-3/5" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path 
-            d="M7 4V20M7 12L17 4M10 12L17 20" 
-            stroke={variant === 'orange' ? 'white' : currentColor.iconColor} 
-            strokeWidth="3.5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-
-      {showText && (
-        <span className={`${currentSize.text} font-[900] tracking-[-0.05em] ${variant === 'light' ? 'text-white' : 'text-slate-900'} transition-colors`}>
-          KOOP<span className="text-[#FF4F00]">.</span>
-        </span>
-      )}
+    <div 
+      className={`
+        inline-flex items-center font-black tracking-tighter uppercase 
+        transition-all duration-700 ease-out hover:scale-105 active:scale-95
+        cursor-pointer group select-none
+        ${sizeClasses[size]} 
+        ${colorClasses[variant === 'orange' ? 'orange' : variant]} 
+        ${className}
+      `}
+    >
+      <span className="relative">
+        KOOP
+        {/* Subtle sliding underline animation on hover */}
+        <span className="absolute -bottom-1 left-0 w-0 h-1 bg-[#FF4F00] transition-all duration-500 group-hover:w-full rounded-full" />
+      </span>
+      <span className="text-[#FF4F00] relative flex h-full">
+        .
+        {/* Motion animation for the dot */}
+        <span className="absolute inset-0 text-[#FF4F00] animate-ping opacity-20 group-hover:opacity-40 transition-opacity">.</span>
+      </span>
     </div>
   );
 };

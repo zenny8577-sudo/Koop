@@ -12,15 +12,39 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    // Basic Validation
+    if (!validateEmail(email)) {
+      setError('Voer een geldig e-mailadres in.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Wachtwoord moet minimaal 6 tekens bevatten.');
+      return;
+    }
+
+    if (activeTab === 'register' && password !== confirmPassword) {
+      setError('Wachtwoorden komen niet overeen.');
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulação de autenticação com credenciais específicas de administrador
+    // Simulação de autenticação
     setTimeout(() => {
       // Credenciais de administrador solicitadas: brenodiogo27@icloud.com / admin123
       const is_admin = (email.toLowerCase() === 'brenodiogo27@icloud.com' && password === 'admin123') || email.toLowerCase().includes('admin');
@@ -32,6 +56,11 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       });
       setIsLoading(false);
     }, 1000);
+  };
+
+  const handleTabChange = (tab: 'login' | 'register') => {
+    setActiveTab(tab);
+    setError(null);
   };
 
   const socialLogin = (provider: 'google' | 'facebook') => {
@@ -57,18 +86,25 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
         <div className="flex gap-6 border-b border-slate-100 pb-6">
           <button 
-            onClick={() => setActiveTab('login')}
+            onClick={() => handleTabChange('login')}
             className={`text-xl font-black uppercase tracking-tighter transition-all ${activeTab === 'login' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}`}
           >
             Inloggen
           </button>
           <button 
-            onClick={() => setActiveTab('register')}
+            onClick={() => handleTabChange('register')}
             className={`text-xl font-black uppercase tracking-tighter transition-all ${activeTab === 'register' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}`}
           >
             Registreren
           </button>
         </div>
+
+        {error && (
+          <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 animate-slideIn">
+            <svg className="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <p className="text-[11px] font-black uppercase tracking-widest text-rose-500">{error}</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <button onClick={() => socialLogin('google')} className="flex items-center justify-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all group">
@@ -103,15 +139,27 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             />
           </div>
           {activeTab === 'register' && (
-             <div className="flex items-center gap-3 px-4">
-                <input type="checkbox" required className="w-4 h-4 text-[#FF4F00] border-slate-200 rounded focus:ring-[#FF4F00]" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ik accepteer de voorwaarden</span>
-             </div>
+            <>
+              <div className="space-y-2">
+                <input 
+                  type="password" 
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="BEVESTIG WACHTWOORD"
+                  className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                />
+              </div>
+              <div className="flex items-center gap-3 px-4">
+                  <input type="checkbox" required className="w-4 h-4 text-[#FF4F00] border-slate-200 rounded focus:ring-[#FF4F00]" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ik accepteer de voorwaarden</span>
+              </div>
+            </>
           )}
           <button 
             type="submit"
             disabled={isLoading}
-            className="w-full py-6 bg-slate-900 text-white font-black rounded-3xl uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#FF4F00] transition-all transform active:scale-95"
+            className="w-full py-6 bg-slate-950 text-white font-black rounded-3xl uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#FF4F00] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Verificeren...' : activeTab === 'login' ? 'Doorgaan' : 'Account Aanmaken'}
           </button>

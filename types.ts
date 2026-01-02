@@ -20,6 +20,23 @@ export enum ProductCondition {
   FAIR = 'fair'
 }
 
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+
+export interface VerificationCheck {
+  passed: boolean;
+  score: number;
+  message: string;
+}
+
+export interface VerificationResult {
+  authenticity: VerificationCheck;
+  condition: VerificationCheck;
+  priceFairness: VerificationCheck;
+  legalCompliance: VerificationCheck;
+  overallPassed: boolean;
+  verifiedAt: string;
+}
+
 export interface Review {
   id: string;
   productId: string;
@@ -30,11 +47,25 @@ export interface Review {
   createdAt: string;
 }
 
+export interface UserAddress extends Address {
+  id: string;
+  isDefault: boolean;
+  label: string;
+}
+
 export interface User {
   id: string;
   email: string;
   role: UserRole;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   stripeAccountId?: string;
+  addresses?: UserAddress[];
+  avatar?: string;
+  verificationStatus?: VerificationStatus;
+  verificationDocs?: string[];
+  wishlist?: string[]; // IDs dos produtos favoritos
 }
 
 export interface Product {
@@ -47,6 +78,7 @@ export interface Product {
   status: ProductStatus;
   category: string;
   image: string;
+  gallery?: string[]; // URLs de imagens adicionais
   commissionRate: number;
   commissionAmount: number;
   stripeLink?: string;
@@ -57,6 +89,7 @@ export interface Product {
   size?: string;
   shippingMethods?: string[];
   internalNote?: string;
+  verification?: VerificationResult;
 }
 
 export interface CartItem {

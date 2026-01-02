@@ -1,5 +1,6 @@
 
 import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review } from '../types';
+import { ProductVerificationService } from './verificationService';
 
 export const currentUser: User = {
   id: 'user_123',
@@ -17,7 +18,7 @@ const images = [
   'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=800',
   'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&q=80&w=800',
   'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1507582020474-9a35b7d455d9?auto=format&fit=crop&q=80&w=800',
+  'https://images.timeout.com/images/105315082/750/422/image.jpg',
   'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=800'
 ];
 
@@ -30,11 +31,11 @@ export const generateMockProducts = (count: number): Product[] => {
     const title = `${titlePool[Math.floor(Math.random() * titlePool.length)]} #${i}`;
     const price = Math.floor(Math.random() * 2000) + 50;
     
-    products.push({
+    const product: Product = {
       id: `p-${i}`,
       sellerId: i % 5 === 0 ? 'user_123' : `user_${i}`,
       title,
-      description: `Premium quality item in ${condition} condition. Full check performed by our Dutch experts. Ready for shipping.`,
+      description: `Premium quality item in ${condition} condition. Full check performed by our Dutch experts. Ready for shipping. This is a highly sought after item from a reliable source.`,
       price,
       condition,
       status: i > 95 ? ProductStatus.SOLD : ProductStatus.ACTIVE,
@@ -48,7 +49,14 @@ export const generateMockProducts = (count: number): Product[] => {
       size: 'Standard',
       shippingMethods: ['postnl', 'dhl'],
       internalNote: 'Checked and verified'
-    });
+    };
+
+    // Pre-verify some products to show the badge
+    if (i % 3 === 0) {
+      product.verification = ProductVerificationService.verify(product);
+    }
+
+    products.push(product);
   }
   return products;
 };
