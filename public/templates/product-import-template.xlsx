@@ -1,0 +1,3 @@
+[Arquivo binário - Estrutura CSV:]
+SKU,Nome,Descrição,Preço,Peso,Dimensões,País Origem,Código Barras
+ABC123,Produto Exemplo,Descrição detalhada,99.99,0.5,10x10x10cm,NL,123456789012
