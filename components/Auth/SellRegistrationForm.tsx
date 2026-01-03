@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface SellRegistrationFormProps {
@@ -83,8 +82,8 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Naam</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 className="w-full bg-slate-50 border-none rounded-3xl px-8 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 value={formData.name}
@@ -93,8 +92,8 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">E-mail</label>
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 className="w-full bg-slate-50 border-none rounded-3xl px-8 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 value={formData.email}
@@ -103,7 +102,7 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Categorie</label>
-              <select 
+              <select
                 className="w-full bg-slate-50 border-none rounded-3xl px-8 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 value={formData.category}
                 onChange={e => setFormData({...formData, category: e.target.value})}
@@ -116,8 +115,8 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Geschatte Waarde (€)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 required
                 className="w-full bg-slate-50 border-none rounded-3xl px-8 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 value={formData.estimatedValue}
@@ -126,7 +125,7 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
             </div>
             <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Wat wil je verkopen?</label>
-              <textarea 
+              <textarea
                 required
                 placeholder="Vertel ons meer over het item, de staat e eventuele accessoires..."
                 className="w-full bg-slate-50 border-none rounded-3xl px-8 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all h-32"
@@ -136,7 +135,7 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
             </div>
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full py-7 bg-slate-950 text-white font-black rounded-3xl uppercase tracking-widest text-[12px] shadow-2xl hover:bg-[#FF4F00] transition-all disabled:opacity-50 disabled:cursor-not-allowed"

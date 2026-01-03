@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { db } from '../../services/db';
 import { User, Transaction } from '../../types';
@@ -68,9 +67,9 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) =>
               { id: 'addresses', label: 'Adressen' },
               { id: 'profile', label: 'Profiel Instellingen' }
             ].map(tab => (
-              <button 
+              <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)} 
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 group ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
@@ -117,7 +116,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) =>
               <h2 className="text-xl font-black uppercase tracking-tighter text-slate-950">Bestelgeschiedenis</h2>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{transactions.length} Bestellingen</span>
             </div>
-            
+
             {transactions.length === 0 ? (
               <div className="py-40 text-center space-y-6">
                 <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
