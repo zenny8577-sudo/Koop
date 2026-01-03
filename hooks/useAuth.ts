@@ -13,6 +13,7 @@ export function useAuth() {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
       } catch (err) {
+        console.error('Auth error:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
@@ -30,6 +31,7 @@ export function useAuth() {
       setUser(user);
       return user;
     } catch (err) {
+      console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
       throw err;
     } finally {
@@ -44,6 +46,7 @@ export function useAuth() {
       await authService.signOut();
       setUser(null);
     } catch (err) {
+      console.error('Logout error:', err);
       setError(err instanceof Error ? err.message : 'Logout failed');
       throw err;
     } finally {
