@@ -1,7 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Product, ProductStatus, User } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Type declaration for import.meta.env
+declare const importMetaEnv: {
+  VITE_SUPABASE_URL?: string;
+  VITE_SUPABASE_ANON_KEY?: string;
+};
+
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
+const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn('Supabase URL and Key not defined in environment variables. Using mock data.');
@@ -13,7 +20,6 @@ export class SupabaseService {
   static async getProducts(page: number, limit: number, filters: any) {
     try {
       if (!supabase) {
-        // Fallback to mock data
         return {
           data: [],
           total: 0
@@ -59,7 +65,6 @@ export class SupabaseService {
       };
     } catch (error) {
       console.error('Failed to fetch products:', error);
-      // Return empty data instead of crashing
       return {
         data: [],
         total: 0
@@ -122,11 +127,9 @@ export class SupabaseService {
         return null;
       }
 
-      // First get current user
       const user = await this.getUser(userId);
       if (!user) return null;
 
-      // Update wishlist
       const wishlist = user.wishlist || [];
       const updatedWishlist = wishlist.includes(productId)
         ? wishlist.filter((id: string) => id !== productId)
@@ -135,6 +138,79 @@ export class SupabaseService {
       return await this.updateUser(userId, { wishlist: updatedWishlist });
     } catch (error) {
       console.error('Failed to toggle wishlist:', error);
+      return null;
+    }
+  }
+
+  static async createTransaction(transaction: any) {
+    try {
+      if (!supabase) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([transaction])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to create transaction:', error);
+      return null;
+    }
+  }
+
+  static async updateProductStatus(productId: string, status: ProductStatus) {
+    try {
+      if (!supabase) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .update({ status })
+        .eq('id', productId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to update product status:', error);
+      return null;
+    }
+  }
+
+  static async createProduct(product: any) {
+    try {
+      if (!supabase) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .insert([product])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to create product:', error);
       return null;
     }
   }

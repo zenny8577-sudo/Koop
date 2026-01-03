@@ -1,10 +1,9 @@
 export class AnalyticsService {
   static trackEvent(eventName: string, properties: any = {}) {
-    if (typeof window !== 'undefined' && window.analytics) {
-      window.analytics.track(eventName, properties);
+    if (typeof window !== 'undefined' && (window as any).analytics) {
+      (window as any).analytics.track(eventName, properties);
     }
 
-    // Also send to backend
     fetch('/api/track', {
       method: 'POST',
       headers: {
@@ -19,8 +18,8 @@ export class AnalyticsService {
   }
 
   static identifyUser(userId: string, traits: any = {}) {
-    if (typeof window !== 'undefined' && window.analytics) {
-      window.analytics.identify(userId, traits);
+    if (typeof window !== 'undefined' && (window as any).analytics) {
+      (window as any).analytics.identify(userId, traits);
     }
   }
 

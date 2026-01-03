@@ -12,6 +12,5 @@ export const WooCommerceService = {
   },
 
   async syncInventory(productId: string, stockQuantity: number) {
-    // Lógica de sincronização com WooCommerce
   }
 };

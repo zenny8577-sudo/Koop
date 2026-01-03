@@ -14,7 +14,8 @@ export enum ProductCondition {
 export enum ProductStatus {
   ACTIVE = 'ACTIVE',
   PENDING_APPROVAL = 'PENDING_APPROVAL',
-  SOLD = 'SOLD'
+  SOLD = 'SOLD',
+  REJECTED = 'REJECTED'
 }
 
 export interface Product {
@@ -40,6 +41,9 @@ export interface Product {
   supplierId?: string;
   is3DModel: boolean;
   modelGLB?: string;
+  createdAt?: string;
+  verification?: VerificationResult;
+  gallery?: string[];
 }
 
 export interface User {
@@ -50,6 +54,75 @@ export interface User {
   lastName?: string;
   phone?: string;
   verificationStatus?: VerificationStatus;
+  wishlist?: string[];
+  addresses?: UserAddress[];
+  stripeAccountId?: string;
 }
 
 export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+
+export interface UserAddress {
+  id: string;
+  label: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  street: string;
+  houseNumber: string;
+  city: string;
+  zipCode: string;
+  phone: string;
+  isDefault: boolean;
+}
+
+export interface Transaction {
+  id: string;
+  productId: string;
+  userId: string;
+  amount: number;
+  createdAt: string;
+  status?: string;
+  shippingMethod?: string;
+  productTitle?: string;
+}
+
+export interface Review {
+  id: string;
+  productId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface VerificationResult {
+  authenticity: VerificationCheck;
+  condition: VerificationCheck;
+  priceFairness: VerificationCheck;
+  legalCompliance: VerificationCheck;
+  overallPassed: boolean;
+  verifiedAt: string;
+}
+
+export interface VerificationCheck {
+  passed: boolean;
+  message: string;
+  details?: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface Address {
+  firstName: string;
+  lastName: string;
+  email: string;
+  street: string;
+  houseNumber: string;
+  city: string;
+  zipCode: string;
+  phone: string;
+}

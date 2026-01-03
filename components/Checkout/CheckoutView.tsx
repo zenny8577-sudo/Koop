@@ -55,11 +55,10 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
     setError(null);
 
     try {
-      // Create transaction records
       for (const item of items) {
         await SupabaseService.createTransaction({
           product_id: item.product.id,
-          user_id: 'current-user-id', // This should come from auth context
+          user_id: 'current-user-id',
           amount: item.product.price * item.quantity,
           status: 'completed',
           shipping_method: shippingMethod,
@@ -67,11 +66,10 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
         });
       }
 
-      // Track analytics
       AnalyticsService.trackEvent('checkout_completed', {
         total_amount: total,
         items_count: items.length,
-        payment_method
+        payment_method: paymentMethod
       });
 
       onComplete(address, paymentMethod);
@@ -103,7 +101,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
   return (
     <div className="max-w-[1600px] mx-auto min-h-screen bg-white">
       <div className="flex flex-col lg:flex-row h-full">
-        {/* Step Flow Area */}
         <div className="flex-1 p-8 lg:p-24 lg:pr-32 border-r border-slate-100">
           <header className="mb-20">
             <div className="flex items-center gap-3 cursor-pointer mb-16" onClick={onBack}>
@@ -236,7 +233,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
           </div>
         </div>
 
-        {/* Sidebar Order Summary */}
         <div className="w-full lg:w-[540px] bg-slate-50 p-8 lg:p-24 space-y-16">
           <div className="space-y-10">
             {items.map(item => (

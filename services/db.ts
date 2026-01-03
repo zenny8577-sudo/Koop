@@ -56,10 +56,10 @@ class DatabaseService {
         estimatedDelivery: '2-4 days',
         shippingMethods: ['postnl', 'dhl'],
         warehouseLocation: 'Amsterdam',
-        is3DModel: false
+        is3DModel: false,
+        createdAt: new Date().toISOString()
       };
 
-      // Pre-verify some products to show the badge
       if (i % 3 === 0) {
         product.verification = ProductVerificationService.verify(product);
       }
@@ -78,7 +78,8 @@ class DatabaseService {
         firstName: 'Sjors',
         lastName: 'de Groot',
         phone: '+31 6 12345678',
-        verificationStatus: 'verified'
+        verificationStatus: 'verified',
+        wishlist: []
       },
       {
         id: 'admin_breno',
@@ -87,7 +88,8 @@ class DatabaseService {
         firstName: 'Breno',
         lastName: 'Diogo',
         phone: '+31 6 87654321',
-        verificationStatus: 'verified'
+        verificationStatus: 'verified',
+        wishlist: []
       },
       {
         id: 'buyer_1',
@@ -96,7 +98,8 @@ class DatabaseService {
         firstName: 'Anna',
         lastName: 'van Dijk',
         phone: '+31 6 23456789',
-        verificationStatus: 'unverified'
+        verificationStatus: 'unverified',
+        wishlist: []
       }
     ];
   }
@@ -223,7 +226,6 @@ class DatabaseService {
   }
 
   syncWooCommerce(count: number): number {
-    // Simulate WooCommerce sync
     for (let i = 0; i < count; i++) {
       this.products.push({
         id: `wc-${Date.now()}-${i}`,
@@ -245,12 +247,54 @@ class DatabaseService {
         estimatedDelivery: '2-4 days',
         shippingMethods: ['postnl', 'dhl'],
         warehouseLocation: 'Amsterdam',
-        is3DModel: false
+        is3DModel: false,
+        createdAt: new Date().toISOString()
       });
     }
     return count;
   }
+
+  updateUser(userId: string, updates: Partial<User>): User | null {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) return null;
+
+    Object.assign(user, updates);
+    return user;
+  }
+
+  addAddress(userId: string, address: Omit<UserAddress, 'id'>): UserAddress | null {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) return null;
+
+    if (!user.addresses) user.addresses = [];
+
+    const newAddress: UserAddress = {
+      id: `addr-${Date.now()}`,
+      ...address
+    };
+
+    user.addresses.push(newAddress);
+    return newAddress;
+  }
+
+  getTransactionsByUser(userId: string): Transaction[] {
+    return this.transactions.filter(t => t.userId === userId);
+  }
+
+  addReview(review: Omit<Review, 'id' | 'createdAt'>): Review {
+    const newReview: Review = {
+      id: `rev-${Date.now()}`,
+      ...review,
+      createdAt: new Date().toISOString()
+    };
+
+    this.reviews.push(newReview);
+    return newReview;
+  }
+
+  hasReviewed(userId: string, productId: string): boolean {
+    return this.reviews.some(r => r.userId === userId && r.productId === productId);
+  }
 }
 
-// Export a singleton instance
 export const db = new DatabaseService();
