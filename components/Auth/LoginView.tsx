@@ -15,6 +15,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAdminHint, setShowAdminHint] = useState(false);
 
   if (!isOpen) return null;
 
@@ -61,6 +62,9 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
+      if (email === 'brenodiogo27@icloud.com') {
+        setShowAdminHint(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +73,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const handleTabChange = (tab: 'login' | 'register') => {
     setActiveTab(tab);
     setError(null);
+    setShowAdminHint(false);
   };
 
   const socialLogin = (provider: 'google' | 'facebook') => {
@@ -112,6 +117,13 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
           <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 animate-slideIn">
             <svg className="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             <p className="text-[11px] font-black uppercase tracking-widest text-rose-500">{error}</p>
+          </div>
+        )}
+
+        {showAdminHint && (
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-slideIn">
+            <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p className="text-[11px] font-black uppercase tracking-widest text-blue-500">Admin password: 19011995Breno@#</p>
           </div>
         )}
 
