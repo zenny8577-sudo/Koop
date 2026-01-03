@@ -16,6 +16,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showAdminHint, setShowAdminHint] = useState(false);
+  const [role, setRole] = useState<UserRole>(UserRole.BUYER);
 
   if (!isOpen) return null;
 
@@ -50,15 +51,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         const user = await authService.signIn(email, password);
         onSuccess(user);
       } else {
-        // For registration, we'll use a simple mock for now
-        const is_admin = (email.toLowerCase() === 'brenodiogo27@icloud.com' && password === 'admin123') || email.toLowerCase().includes('admin');
-        const newUser = {
-          id: is_admin ? 'admin_breno' : Math.random().toString(36).substr(2, 9),
-          email,
-          role: is_admin ? UserRole.ADMIN : UserRole.BUYER,
-          verificationStatus: 'unverified'
-        };
-        onSuccess(newUser);
+        const user = await authService.signUp(email, password, role);
+        onSuccess(user);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
@@ -170,6 +164,16 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   placeholder="BEVESTIG WACHTWOORD"
                   className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 />
+              </div>
+              <div className="space-y-2">
+                <select
+                  value={role}
+                  onChange={e => setRole(e.target.value as UserRole)}
+                  className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                >
+                  <option value={UserRole.BUYER}>Koper</option>
+                  <option value={UserRole.SELLER}>Verkoper</option>
+                </select>
               </div>
               <div className="flex items-center gap-3 px-4">
                   <input type="checkbox" required className="w-4 h-4 text-[#FF4F00] border-slate-200 rounded focus:ring-[#FF4F00]" />

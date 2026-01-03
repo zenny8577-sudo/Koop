@@ -3,6 +3,16 @@ import { User, UserRole } from '../types';
 
 export const authService = {
   async signUp(email: string, password: string, role: UserRole = UserRole.BUYER) {
+    if (!supabase) {
+      // Mock signup for development
+      return {
+        id: `mock_${Date.now()}`,
+        email,
+        role,
+        verificationStatus: 'unverified'
+      };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -46,7 +56,20 @@ export const authService = {
         id: 'admin_breno',
         email: 'brenodiogo27@icloud.com',
         role: UserRole.ADMIN,
-        verificationStatus: 'verified'
+        verificationStatus: 'verified',
+        firstName: 'Breno',
+        lastName: 'Diogo'
+      };
+    }
+
+    if (!supabase) {
+      // Mock login for development
+      const isAdmin = email.toLowerCase().includes('admin');
+      return {
+        id: isAdmin ? 'admin_mock' : `user_${Date.now()}`,
+        email,
+        role: isAdmin ? UserRole.ADMIN : UserRole.BUYER,
+        verificationStatus: 'unverified'
       };
     }
 
@@ -62,7 +85,7 @@ export const authService = {
     // Get user role from database
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role, verification_status')
+      .select('*')
       .eq('id', data.user.id)
       .single();
 
@@ -72,16 +95,25 @@ export const authService = {
       id: data.user.id,
       email: data.user.email,
       role: userData.role,
-      verificationStatus: userData.verification_status
+      verificationStatus: userData.verification_status,
+      ...userData
     };
   },
 
   async signOut() {
+    if (!supabase) {
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
 
   async getCurrentUser() {
+    if (!supabase) {
+      return null;
+    }
+
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) throw error;
@@ -105,9 +137,23 @@ export const authService = {
   },
 
   async updatePassword(newPassword: string) {
+    if (!supabase) {
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     });
+
+    if (error) throw error;
+  },
+
+  async resetPassword(email: string) {
+    if (!supabase) {
+      return;
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
 
     if (error) throw error;
   }

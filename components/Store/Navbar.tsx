@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types';
 import Logo from '../Branding/Logo';
@@ -16,7 +15,6 @@ interface NavbarProps {
   cartCount: number;
 }
 
-// Completed the truncated Navbar component and added the default export to fix the import error in App.tsx
 const Navbar: React.FC<NavbarProps> = ({ 
   onHome, onShop, onAdmin, onOpenCart, onOpenLogin, onDashboard, onSell, onLogout, user, cartCount 
 }) => {
@@ -56,9 +54,9 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className={`absolute top-full -left-20 w-[640px] bg-white rounded-[48px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] border border-slate-100 p-10 transition-all duration-500 origin-top ${isMegaMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-4'}`}>
               <div className="grid grid-cols-2 gap-4">
                 {categories.map((cat) => (
-                  <button 
-                    key={cat.name} 
-                    onClick={() => { onShop(); setIsMegaMenuOpen(false); }} 
+                  <button
+                    key={cat.name}
+                    onClick={() => { onShop(); setIsMegaMenuOpen(false); }}
                     className="flex items-center gap-6 p-6 rounded-[32px] hover:bg-slate-50 transition-all text-left group"
                   >
                     <div className="w-16 h-16 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center text-3xl group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
@@ -77,7 +75,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-8">
-          <button 
+          <button
             onClick={onOpenCart}
             className="relative p-2 text-slate-900 hover:text-[#FF4F00] transition-colors"
           >
@@ -93,13 +91,13 @@ const Navbar: React.FC<NavbarProps> = ({
 
           {user ? (
             <div className="relative" onMouseEnter={() => setIsUserMenuOpen(true)} onMouseLeave={() => setIsUserMenuOpen(false)}>
-              <button 
+              <button
                 onClick={onDashboard}
                 className="flex items-center gap-3 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl shadow-slate-200"
               >
                 Dashboard
               </button>
-              
+
               <div className={`absolute top-full right-0 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 mt-2 py-4 transition-all duration-300 origin-top-right ${isUserMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-2'}`}>
                 <button onClick={onDashboard} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">Overzicht</button>
                 {user.role === UserRole.ADMIN && (
@@ -111,13 +109,13 @@ const Navbar: React.FC<NavbarProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={onOpenLogin}
                 className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors"
               >
                 Inloggen
               </button>
-              <button 
+              <button
                 onClick={onSell}
                 className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl shadow-slate-200"
               >

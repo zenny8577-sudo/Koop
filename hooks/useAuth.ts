@@ -54,5 +54,21 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, error, signIn, signOut };
+  const signUp = async (email: string, password: string, role: UserRole = UserRole.BUYER) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await authService.signUp(email, password, role);
+      setUser(user);
+      return user;
+    } catch (err) {
+      console.error('Signup error:', err);
+      setError(err instanceof Error ? err.message : 'Signup failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { user, loading, error, signIn, signOut, signUp };
 }
