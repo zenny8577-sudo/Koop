@@ -185,10 +185,10 @@ const App: React.FC = () => {
         </div>
         <div className="relative z-10 max-w-5xl space-y-14">
           <div className="space-y-4">
-            <span className="inline-block px-5 py-2.5 bg-[#FF4F00]/10 text-[#FF4F00] text-[11px] font-black uppercase tracking-[0.4em] rounded-full border border-[#FF4F00]/20 backdrop-blur-md">The Dutch Premium Standard</span>
-            <h1 className="text-7xl lg:text-[160px] font-black text-white leading-[0.8] tracking-tighter uppercase">RE-OWNED <br /> <span className="text-[#FF4F00]">MASTERPIECES.</span></h1>
+            <span className="inline-block px-5 py-2.5 bg-[#FF4F00]/10 text-[#FF4F00] text-[11px] font-black uppercase tracking-[0.4em] rounded-full border border-[#FF4F00]/20 backdrop-blur-md">De Nederlandse Premium Standaard</span>
+            <h1 className="text-7xl lg:text-[160px] font-black text-white leading-[0.8] tracking-tighter uppercase">HERGEBRUIKTE <br /> <span className="text-[#FF4F00]">MEESTERWERKEN.</span></h1>
           </div>
-          <p className="text-white/60 text-xl lg:text-2xl font-medium max-w-2xl leading-relaxed">Amsterdam's most exclusive marketplace for geverifieerde tech e designer furniture. Curated by experts, delivered with care.</p>
+          <p className="text-white/60 text-xl lg:text-2xl font-medium max-w-2xl leading-relaxed">Amsterdam's meest exclusieve marktplaats voor geverifieerde tech en designmeubels. Gecureerd door experts, geleverd met zorg.</p>
           <div className="flex flex-wrap gap-8 pt-6">
             <button onClick={() => setView('shop')} className="px-16 py-8 bg-[#FF4F00] text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-white hover:text-slate-950 transition-all transform hover:-translate-y-2 shadow-2xl shadow-orange-500/20">Shop de Collectie</button>
             <button onClick={() => setView('sell')} className="px-16 py-8 bg-white/5 backdrop-blur-xl text-white border border-white/10 font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-white/10 transition-all">Start Verkoop</button>

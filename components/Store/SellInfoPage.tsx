@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface SellInfoPageProps {
@@ -27,7 +26,7 @@ const SellInfoPage: React.FC<SellInfoPageProps> = ({ onStartRegistration }) => {
           <p className="text-white/60 text-xl font-medium max-w-2xl mx-auto">
             Verkoop je premium elektronica, design e fietsen op het meest vertrouwde platform van Nederland.
           </p>
-          <button 
+          <button
             onClick={onStartRegistration}
             className="px-16 py-7 bg-[#FF4F00] text-white font-black text-xs uppercase tracking-widest rounded-full hover:bg-white hover:text-slate-900 transition-all transform hover:scale-105 shadow-2xl shadow-orange-500/20"
           >
@@ -78,7 +77,7 @@ const SellInfoPage: React.FC<SellInfoPageProps> = ({ onStartRegistration }) => {
       {/* CTA */}
       <section className="max-w-[1440px] mx-auto px-6 pb-40 text-center space-y-12">
         <h2 className="text-6xl font-black text-slate-900 tracking-tighter uppercase">Klaar om te verkopen?</h2>
-        <button 
+        <button
           onClick={onStartRegistration}
           className="px-20 py-8 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-full hover:bg-[#FF4F00] transition-all"
         >
