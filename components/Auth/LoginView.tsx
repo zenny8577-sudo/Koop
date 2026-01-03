@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { UserRole, User } from '../../types';
+import { authService } from '../../services/authService';
 
 interface LoginViewProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -43,19 +43,27 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     }
 
     setIsLoading(true);
-    
-    // Simulação de autenticação
-    setTimeout(() => {
-      // Credenciais de administrador solicitadas: brenodiogo27@icloud.com / admin123
-      const is_admin = (email.toLowerCase() === 'brenodiogo27@icloud.com' && password === 'admin123') || email.toLowerCase().includes('admin');
-      
-      onSuccess({
-        id: is_admin ? 'admin_breno' : Math.random().toString(36).substr(2, 9),
-        email,
-        role: is_admin ? UserRole.ADMIN : UserRole.BUYER
-      });
+
+    try {
+      if (activeTab === 'login') {
+        const user = await authService.signIn(email, password);
+        onSuccess(user);
+      } else {
+        // For registration, we'll use a simple mock for now
+        const is_admin = (email.toLowerCase() === 'brenodiogo27@icloud.com' && password === 'admin123') || email.toLowerCase().includes('admin');
+        const newUser = {
+          id: is_admin ? 'admin_breno' : Math.random().toString(36).substr(2, 9),
+          email,
+          role: is_admin ? UserRole.ADMIN : UserRole.BUYER,
+          verificationStatus: 'unverified'
+        };
+        onSuccess(newUser);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Authentication failed');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleTabChange = (tab: 'login' | 'register') => {
@@ -69,7 +77,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       onSuccess({
         id: `social_${provider}_${Date.now()}`,
         email: `${provider}@user.com`,
-        role: UserRole.BUYER
+        role: UserRole.BUYER,
+        verificationStatus: 'unverified'
       });
       setIsLoading(false);
     }, 1200);
@@ -85,13 +94,13 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         </button>
 
         <div className="flex gap-6 border-b border-slate-100 pb-6">
-          <button 
+          <button
             onClick={() => handleTabChange('login')}
             className={`text-xl font-black uppercase tracking-tighter transition-all ${activeTab === 'login' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}`}
           >
             Inloggen
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('register')}
             className={`text-xl font-black uppercase tracking-tighter transition-all ${activeTab === 'register' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}`}
           >
@@ -119,8 +128,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -129,8 +138,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             />
           </div>
           <div className="space-y-2">
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -141,8 +150,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
           {activeTab === 'register' && (
             <>
               <div className="space-y-2">
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
@@ -156,7 +165,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               </div>
             </>
           )}
-          <button 
+          <button
             type="submit"
             disabled={isLoading}
             className="w-full py-6 bg-slate-950 text-white font-black rounded-3xl uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#FF4F00] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
