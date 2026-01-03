@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { supabase } from '../src/integrations/supabase/client';
 import { User, UserRole } from '../types';
 
 export function useAuth() {
@@ -21,6 +22,19 @@ export function useAuth() {
     };
 
     loadUser();
+
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        loadUser();
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -56,12 +70,12 @@ export function useAuth() {
     }
   };
 
-  const signUp = async (email: string, password: string, role: UserRole = UserRole.BUYER) => {
+  const signUp = async (email: string, password: string, role: UserRole = UserRole.BUYER, firstName?: string, lastName?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      const user = await authService.signUp(email, password, role);
+      const user = await authService.signUp(email, password, role, firstName, lastName);
       setUser(user);
       return user;
     } catch (err) {

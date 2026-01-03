@@ -13,6 +13,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showAdminHint, setShowAdminHint] = useState(false);
@@ -50,7 +52,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       if (activeTab === 'login') {
         user = await authService.signIn(email, password);
       } else {
-        user = await authService.signUp(email, password, role);
+        user = await authService.signUp(email, password, role, firstName, lastName);
       }
       
       onSuccess(user);
@@ -185,6 +187,26 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
           {activeTab === 'register' && (
             <>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="VOORNAAM"
+                  className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="ACHTERNAAM"
+                  className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+                />
+              </div>
+              
               <div className="space-y-2">
                 <input
                   type="password"

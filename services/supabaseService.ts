@@ -1,31 +1,9 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../src/integrations/supabase/client';
 import { Product, ProductStatus, User } from '../types';
-
-// Type declaration for import.meta.env
-declare const importMetaEnv: {
-  VITE_SUPABASE_URL?: string;
-  VITE_SUPABASE_ANON_KEY?: string;
-};
-
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-const supabaseKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Supabase URL and Key not defined in environment variables. Using mock data.');
-}
-
-export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export class SupabaseService {
   static async getProducts(page: number, limit: number, filters: any) {
     try {
-      if (!supabase) {
-        return {
-          data: [],
-          total: 0
-        };
-      }
-
       let query = supabase
         .from('products')
         .select('*', { count: 'exact' })
@@ -41,7 +19,7 @@ export class SupabaseService {
 
       if (filters.minPrice || filters.maxPrice) {
         query = query.gte('price', filters.minPrice || 0)
-                     .lte('price', filters.maxPrice || 10000);
+          .lte('price', filters.maxPrice || 10000);
       }
 
       if (filters.sortBy === 'price_asc') {
@@ -52,7 +30,8 @@ export class SupabaseService {
         query = query.order('created_at', { ascending: false });
       }
 
-      const { data, count, error } = await query.range((page - 1) * limit, page * limit - 1);
+      const { data, count, error } = await query
+        .range((page - 1) * limit, page * limit - 1);
 
       if (error) {
         console.error('Supabase error:', error);
@@ -74,10 +53,6 @@ export class SupabaseService {
 
   static async getUser(userId: string) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -98,10 +73,6 @@ export class SupabaseService {
 
   static async updateUser(userId: string, updates: any) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('users')
         .update(updates)
@@ -123,10 +94,6 @@ export class SupabaseService {
 
   static async toggleWishlist(userId: string, productId: string) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const user = await this.getUser(userId);
       if (!user) return null;
 
@@ -144,10 +111,6 @@ export class SupabaseService {
 
   static async createTransaction(transaction: any) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('transactions')
         .insert([transaction])
@@ -168,10 +131,6 @@ export class SupabaseService {
 
   static async updateProductStatus(productId: string, status: ProductStatus) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('products')
         .update({ status })
@@ -193,10 +152,6 @@ export class SupabaseService {
 
   static async createProduct(product: any) {
     try {
-      if (!supabase) {
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('products')
         .insert([product])
