@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Product, Review, User, ProductStatus } from '../../types';
 import { db } from '../../services/db';
@@ -77,7 +76,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     <div className="animate-fadeIn px-6 pb-40 pt-10 max-w-[1440px] mx-auto">
       <button onClick={() => step === 'shipping' ? setStep('details') : onBack()} className="mb-12 flex items-center gap-3 group">
         <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
         </div>
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Terug naar Collectie</span>
       </button>
