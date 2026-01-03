@@ -47,13 +47,14 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     setIsLoading(true);
 
     try {
+      let user: User;
       if (activeTab === 'login') {
-        const user = await authService.signIn(email, password);
-        onSuccess(user);
+        user = await authService.signIn(email, password);
       } else {
-        const user = await authService.signUp(email, password, role);
-        onSuccess(user);
+        user = await authService.signUp(email, password, role);
       }
+      onSuccess(user);
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       if (email === 'brenodiogo27@icloud.com') {
@@ -73,12 +74,14 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const socialLogin = (provider: 'google' | 'facebook') => {
     setIsLoading(true);
     setTimeout(() => {
-      onSuccess({
+      const user: User = {
         id: `social_${provider}_${Date.now()}`,
         email: `${provider}@user.com`,
         role: UserRole.BUYER,
         verificationStatus: 'unverified'
-      });
+      };
+      onSuccess(user);
+      onClose();
       setIsLoading(false);
     }, 1200);
   };
