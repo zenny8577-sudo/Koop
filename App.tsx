@@ -28,16 +28,18 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    search: '',
-    category: 'All',
-    condition: 'All',
-    minPrice: 0,
-    maxPrice: 10000,
-    sortBy: 'newest'
+  const [filters, setFilters] = useState({ 
+    search: '', 
+    category: 'All', 
+    condition: 'All', 
+    minPrice: 0, 
+    maxPrice: 10000, 
+    sortBy: 'newest' 
   });
-  const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
-
+  const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ 
+    data: [], 
+    total: 0 
+  });
   const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
@@ -78,6 +80,7 @@ const App: React.FC = () => {
       setIsLoginOpen(true);
       return;
     }
+    
     try {
       await SupabaseService.toggleWishlist(user.id, productId);
       loadProducts();
@@ -111,11 +114,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoginSuccess = async (email: string, password: string) => {
+  const handleLoginSuccess = async (user: User) => {
     try {
-      await signIn(email, password);
       setIsLoginOpen(false);
       AnalyticsService.trackEvent('user_login');
+      
+      // Navigate to appropriate dashboard
+      if (user.role === UserRole.ADMIN) {
+        setView('admin');
+      } else if (user.role === UserRole.SELLER) {
+        setView('seller-dashboard');
+      } else if (user.role === UserRole.BUYER) {
+        setView('buyer-dashboard');
+      }
     } catch (error) {
       console.error('Login error:', error);
     }
@@ -143,13 +154,13 @@ const App: React.FC = () => {
   const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const resetFilters = () => {
-    setFilters({
-      search: '',
-      category: 'All',
-      condition: 'All',
-      minPrice: 0,
-      maxPrice: 10000,
-      sortBy: 'newest'
+    setFilters({ 
+      search: '', 
+      category: 'All', 
+      condition: 'All', 
+      minPrice: 0, 
+      maxPrice: 10000, 
+      sortBy: 'newest' 
     });
   };
 
@@ -167,12 +178,16 @@ const App: React.FC = () => {
   }
 
   if (view === 'checkout') {
-    return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
+    return <CheckoutView 
+      items={cart} 
+      onBack={() => setView('shop')} 
+      onComplete={handleCheckoutComplete} 
+    />;
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar
+      <Navbar 
         onHome={() => setView('home')}
         onShop={() => setView('shop')}
         onAdmin={() => setView('admin')}
@@ -192,24 +207,28 @@ const App: React.FC = () => {
         user={user}
         cartCount={cartCount}
       />
-
-      <CartDrawer
-        isOpen={isCartOpen}
+      
+      <CartDrawer 
+        isOpen={isCartOpen} 
         onClose={() => setIsCartOpen(false)}
         items={cart}
         onUpdateQuantity={handleUpdateQuantity}
         onRemove={handleRemoveFromCart}
-        onCheckout={() => { setIsCartOpen(false); setView('checkout'); }}
+        onCheckout={() => {
+          setIsCartOpen(false);
+          setView('checkout');
+        }}
       />
-      <LoginView
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSuccess={handleLoginSuccess}
+      
+      <LoginView 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSuccess={handleLoginSuccess} 
       />
-
+      
       <main className="min-h-screen">
         {view === 'home' && (
-          <HomeView
+          <HomeView 
             products={productsData.data}
             user={user}
             onViewProduct={navigateToDetail}
@@ -218,9 +237,11 @@ const App: React.FC = () => {
             onNavigate={setView}
           />
         )}
+        
         {view === 'success' && <SuccessView onNavigate={setView} />}
+        
         {view === 'shop' && (
-          <ShopView
+          <ShopView 
             products={productsData.data}
             filters={filters}
             user={user}
@@ -232,13 +253,16 @@ const App: React.FC = () => {
             onRemoveFilter={removeFilter}
           />
         )}
+        
         {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
         {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
+        
         {view === 'seller-dashboard' && user && <UserDashboard />}
         {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
         {view === 'admin' && user && <AdminDashboard />}
+        
         {view === 'detail' && selectedProduct && (
-          <ProductDetailView
+          <ProductDetailView 
             product={selectedProduct}
             user={user}
             onBack={() => setView('shop')}
@@ -246,8 +270,12 @@ const App: React.FC = () => {
             onToggleWishlist={handleToggleWishlist}
           />
         )}
-        {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
+        
+        {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && 
+          <InfoPages type={view as any} />
+        }
       </main>
+      
       {view !== 'success' && <Footer onNavigate={setView} />}
     </div>
   );

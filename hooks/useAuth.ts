@@ -26,6 +26,7 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
+    
     try {
       const user = await authService.signIn(email, password);
       setUser(user);
@@ -42,6 +43,7 @@ export function useAuth() {
   const signOut = async () => {
     setLoading(true);
     setError(null);
+    
     try {
       await authService.signOut();
       setUser(null);
@@ -57,6 +59,7 @@ export function useAuth() {
   const signUp = async (email: string, password: string, role: UserRole = UserRole.BUYER) => {
     setLoading(true);
     setError(null);
+    
     try {
       const user = await authService.signUp(email, password, role);
       setUser(user);
@@ -70,5 +73,12 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, error, signIn, signOut, signUp };
+  return {
+    user,
+    loading,
+    error,
+    signIn,
+    signOut,
+    signUp
+  };
 }

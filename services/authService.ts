@@ -24,7 +24,6 @@ export const authService = {
     });
 
     if (error) throw error;
-
     if (!data.user) throw new Error('User not created');
 
     // Create user record in users table
@@ -79,7 +78,6 @@ export const authService = {
     });
 
     if (error) throw error;
-
     if (!data.user) throw new Error('Invalid credentials');
 
     // Get user role from database
@@ -115,7 +113,6 @@ export const authService = {
     }
 
     const { data: { user }, error } = await supabase.auth.getUser();
-
     if (error) throw error;
     if (!user) return null;
 
@@ -154,7 +151,6 @@ export const authService = {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email);
-
     if (error) throw error;
   }
 };
