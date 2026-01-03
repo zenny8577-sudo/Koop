@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './hooks/useAuth';
+import { useCart } from './hooks/useCart';
 import Navbar from './components/Store/Navbar';
 import Footer from './components/Store/Footer';
 import CartDrawer from './components/Store/CartDrawer';
-import CheckoutView from './components/Store/CheckoutView';
+import CheckoutView from './components/Checkout/CheckoutView';
 import ProductCard from './components/Products/ProductCard';
 import ProductDetailView from './components/Products/ProductDetailView';
 import LoginView from './components/Auth/LoginView';
@@ -12,36 +14,18 @@ import BuyerDashboard from './components/Dashboard/BuyerDashboard';
 import SellRegistrationForm from './components/Auth/SellRegistrationForm';
 import SellInfoPage from './components/Store/SellInfoPage';
 import InfoPages from './components/Store/InfoPages';
-import { db } from './services/db';
+import { SupabaseService } from './services/supabaseService';
 import { Product, User, UserRole, CartItem, Address, ProductStatus } from './types';
+import { AnalyticsService } from './services/analyticsService';
 
 type ViewState = 'home' | 'shop' | 'detail' | 'admin' | 'seller-dashboard' | 'buyer-dashboard' | 'sell' | 'sell-onboarding' | 'about' | 'faq' | 'contact' | 'privacy' | 'terms' | 'cookies' | 'checkout' | 'success';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('home');
-  const [user, setUser] = useState<User | null>(() => {
-    const savedUser = localStorage.getItem('koop_user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('koop_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [activeSpotlight, setActiveSpotlight] = useState(0);
-
-  useEffect(() => {
-    localStorage.setItem('koop_cart', JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    if (user) localStorage.setItem('koop_user', JSON.stringify(user));
-    else localStorage.removeItem('koop_user');
-  }, [user]);
-
-  // Shop Filters State
   const [filters, setFilters] = useState({
     search: '',
     category: 'All',
@@ -50,12 +34,14 @@ const App: React.FC = () => {
     maxPrice: 10000,
     sortBy: 'newest'
   });
+  const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
 
-  const [productsData, setProductsData] = useState(db.getProducts(1, 100, filters));
+  const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
+  const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
   useEffect(() => {
-    setProductsData(db.getProducts(1, 100, filters));
-    if (view !== 'detail') window.scrollTo(0, 0);
+    loadProducts();
+    AnalyticsService.pageView(view);
   }, [filters, view]);
 
   useEffect(() => {
@@ -67,64 +53,97 @@ const App: React.FC = () => {
     }
   }, [view]);
 
+  const loadProducts = async () => {
+    try {
+      const data = await SupabaseService.getProducts(1, 100, filters);
+      setProductsData(data);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    }
+  };
+
   const handleAddToCart = (product: Product) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item => item.product.id === product.id 
-          ? { ...item, quantity: item.quantity + 1 } 
-          : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
+    addToCart(product);
     setIsCartOpen(true);
   };
 
-  const handleToggleWishlist = (productId: string) => {
+  const handleToggleWishlist = async (productId: string) => {
     if (!user) {
       setIsLoginOpen(true);
       return;
     }
-    const updatedUser = db.toggleWishlist(user.id, productId);
-    if (updatedUser) setUser(updatedUser);
+    try {
+      await SupabaseService.toggleWishlist(user.id, productId);
+      // Refresh user data to update wishlist
+      const updatedUser = await SupabaseService.getUser(user.id);
+      if (updatedUser) {
+        // In a real app, you'd update the user state here
+        // For now, we'll just reload the products to get fresh data
+        loadProducts();
+      }
+    } catch (error) {
+      console.error('Failed to toggle wishlist:', error);
+    }
   };
 
   const handleUpdateQuantity = (productId: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.product.id === productId) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
+    const item = cart.find(item => item.product.id === productId);
+    if (item) {
+      updateQuantity(productId, item.quantity + delta);
+    }
   };
 
   const handleRemoveFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+    removeFromCart(productId);
   };
 
-  const handleCheckoutComplete = (address: Address, paymentMethod: string) => {
-    setCart([]);
-    setView('success');
+  const handleCheckoutComplete = async (address: Address, paymentMethod: string) => {
+    try {
+      // In a real app, you would:
+      // 1. Create transactions for each item
+      // 2. Clear the cart
+      // 3. Send confirmation emails
+      // 4. Track analytics
+
+      await clearCart();
+      setView('success');
+      AnalyticsService.trackEvent('checkout_completed', {
+        items_count: cart.length,
+        total_amount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
+        payment_method: paymentMethod
+      });
+    } catch (error) {
+      console.error('Checkout completion error:', error);
+    }
   };
 
-  const handleLoginSuccess = (user: User) => {
-    setUser(user);
-    setIsLoginOpen(false);
-    if (user.role === UserRole.ADMIN) setView('admin');
-    else if (user.role === UserRole.SELLER) setView('seller-dashboard');
-    else setView('home');
+  const handleLoginSuccess = async (email: string, password: string) => {
+    try {
+      await signIn(email, password);
+      setIsLoginOpen(false);
+      AnalyticsService.trackEvent('user_login');
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setView('home');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setView('home');
+      AnalyticsService.trackEvent('user_logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const navigateToDetail = (product: Product) => {
     setSelectedProduct(product);
     setView('detail');
+    AnalyticsService.trackEvent('product_view', {
+      productId: product.id,
+      category: product.category
+    });
   };
 
   const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
@@ -176,7 +195,7 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* New Arrivals Grid (Nieuwe Items) */}
+      {/* New Arrivals Grid */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="flex justify-between items-end mb-12">
           <div className="space-y-2">
@@ -186,7 +205,16 @@ const App: React.FC = () => {
           <button onClick={() => setView('shop')} className="hidden md:block text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-[#FF4F00] transition-colors border-b-2 border-slate-100 hover:border-[#FF4F00] pb-2">Bekijk alles →</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-          {recentProducts.map(p => <ProductCard key={p.id} product={p} onClick={navigateToDetail} onAddToCart={handleAddToCart} isWishlisted={user?.wishlist?.includes(p.id)} onToggleWishlist={handleToggleWishlist} />)}
+          {recentProducts.map(p => (
+            <ProductCard
+              key={p.id}
+              product={p}
+              onClick={navigateToDetail}
+              onAddToCart={handleAddToCart}
+              isWishlisted={user?.wishlist?.includes(p.id)}
+              onToggleWishlist={handleToggleWishlist}
+            />
+          ))}
         </div>
       </section>
 
@@ -200,25 +228,25 @@ const App: React.FC = () => {
               </div>
               <div className="flex gap-3">
                  {spotlightProducts.map((_, i) => (
-                   <button 
-                     key={i} 
+                   <button
+                     key={i}
                      onClick={() => setActiveSpotlight(i)}
                      className={`h-1.5 transition-all duration-500 rounded-full ${activeSpotlight === i ? 'bg-[#FF4F00] w-12' : 'bg-slate-200 w-4'}`}
                    />
                  ))}
               </div>
            </div>
-           
+
            <div className="relative h-[600px] lg:h-[700px] overflow-hidden rounded-[80px] group">
               {spotlightProducts.map((product, i) => (
-                <div 
+                <div
                   key={product.id}
                   className={`absolute inset-0 transition-all duration-1000 ease-in-out ${activeSpotlight === i ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-full scale-110 pointer-events-none'}`}
                 >
-                   <ProductCard 
-                     product={product} 
-                     variant="featured" 
-                     onClick={navigateToDetail} 
+                   <ProductCard
+                     product={product}
+                     variant="featured"
+                     onClick={navigateToDetail}
                      onAddToCart={handleAddToCart}
                      isWishlisted={user?.wishlist?.includes(product.id)}
                      onToggleWishlist={handleToggleWishlist}
@@ -229,7 +257,7 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Category Explorer - Editorial Overhaul */}
+      {/* Category Explorer */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-20">
           <div className="space-y-4">
@@ -238,7 +266,7 @@ const App: React.FC = () => {
           </div>
           <p className="text-slate-500 font-medium max-w-sm text-lg leading-relaxed">Onze curators hebben de meest exclusieve items voor u geselecteerd, gecategoriseerd op esthetiek en vakmanschap.</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[1000px] lg:h-[800px]">
           {/* Tech - Wide */}
           <div className="md:col-span-8 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { setFilters({...filters, category: 'Elektronica'}); setView('shop'); }}>
@@ -249,7 +277,7 @@ const App: React.FC = () => {
               <h4 className="text-5xl font-black text-white uppercase tracking-tighter">Elektronica</h4>
             </div>
           </div>
-          
+
           {/* Design - Tall */}
           <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { setFilters({...filters, category: 'Design'}); setView('shop'); }}>
             <img src={categoryImages['Design']} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
@@ -291,7 +319,7 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Trust Bar - Relocated to Bottom */}
+      {/* Trust Bar */}
       <section className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
@@ -342,18 +370,46 @@ const App: React.FC = () => {
     </div>
   );
 
+  if (authLoading || cartLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF4F00]"></div>
+      </div>
+    );
+  }
+
   if (view === 'checkout') {
     return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <Navbar 
-        onHome={() => setView('home')} onShop={() => setView('shop')} onAdmin={() => setView('admin')} onOpenCart={() => setIsCartOpen(true)} onOpenLogin={() => setIsLoginOpen(true)} onDashboard={() => setView(user?.role === UserRole.ADMIN ? 'admin' : user?.role === UserRole.SELLER ? 'seller-dashboard' : 'buyer-dashboard')} onSell={() => setView('sell')} onLogout={handleLogout} user={user} cartCount={cartCount} 
+      <Navbar
+        onHome={() => setView('home')}
+        onShop={() => setView('shop')}
+        onAdmin={() => setView('admin')}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenLogin={() => setIsLoginOpen(true)}
+        onDashboard={() => setView(user?.role === UserRole.ADMIN ? 'admin' : user?.role === UserRole.SELLER ? 'seller-dashboard' : 'buyer-dashboard')}
+        onSell={() => setView('sell')}
+        onLogout={handleLogout}
+        user={user}
+        cartCount={cartCount}
       />
-      
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onUpdateQuantity={handleUpdateQuantity} onRemove={handleRemoveFromCart} onCheckout={() => { setIsCartOpen(false); setView('checkout'); }} />
-      <LoginView isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onSuccess={handleLoginSuccess} />
+
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cart}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemove={handleRemoveFromCart}
+        onCheckout={() => { setIsCartOpen(false); setView('checkout'); }}
+      />
+      <LoginView
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={handleLoginSuccess}
+      />
 
       <main className="min-h-screen">
         {view === 'home' && renderHome()}
@@ -364,18 +420,18 @@ const App: React.FC = () => {
                 <div className="space-y-6">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Refine Search</h3>
                   <div className="relative group">
-                    <input 
-                      type="text" 
-                      placeholder="PRODUCT, SKU OF TAGS..." 
-                      value={filters.search} 
-                      onChange={e => setFilters({...filters, search: e.target.value})} 
-                      className="w-full bg-slate-50 border-2 border-slate-50 focus:border-[#FF4F00]/20 rounded-[32px] px-10 py-7 text-sm font-bold outline-none transition-all placeholder:text-slate-300 shadow-sm" 
+                    <input
+                      type="text"
+                      placeholder="PRODUCT, SKU OF TAGS..."
+                      value={filters.search}
+                      onChange={e => setFilters({...filters, search: e.target.value})}
+                      className="w-full bg-slate-50 border-2 border-slate-50 focus:border-[#FF4F00]/20 rounded-[32px] px-10 py-7 text-sm font-bold outline-none transition-all placeholder:text-slate-300 shadow-sm"
                     />
                     <svg className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-hover:text-[#FF4F00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                   </div>
                 </div>
 
-                {/* Collecties (Categorias) */}
+                {/* Categories */}
                 <div className="space-y-10">
                   <div className="flex justify-between items-center">
                     <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Collecties</h3>
@@ -384,10 +440,10 @@ const App: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-col gap-6">
-                    {['All', ...db.getCategories()].map(c => (
-                      <button 
-                        key={c} 
-                        onClick={() => setFilters({...filters, category: c})} 
+                    {['All', ...Object.keys(categoryImages)].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setFilters({...filters, category: c})}
                         className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group ${filters.category === c ? 'text-[#FF4F00]' : 'text-slate-400 hover:text-slate-900'}`}
                       >
                         {c}
@@ -397,7 +453,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Prijs Range */}
+                {/* Price Range */}
                 <div className="space-y-10">
                   <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Prijs Range</h3>
                   <div className="px-2 space-y-8">
@@ -408,7 +464,7 @@ const App: React.FC = () => {
                     <input type="range" min="0" max="10000" step="100" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: parseInt(e.target.value)})} className="w-full h-1.5 bg-slate-100 rounded-full appearance-none cursor-pointer accent-[#FF4F00]" />
                   </div>
                 </div>
-                
+
                 <div className="p-10 bg-slate-950 rounded-[50px] space-y-6 text-white overflow-hidden relative shadow-3xl">
                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4F00] blur-[80px] opacity-20" />
                    <h4 className="text-xl font-black uppercase tracking-tighter relative z-10">Hulp Nodig?</h4>
@@ -443,8 +499,8 @@ const App: React.FC = () => {
 
                   <div className="flex items-center gap-4">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sorteer op:</span>
-                    <select 
-                      value={filters.sortBy} 
+                    <select
+                      value={filters.sortBy}
                       onChange={e => setFilters({...filters, sortBy: e.target.value})}
                       className="bg-transparent border-none text-[11px] font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#FF4F00] transition-colors"
                     >
@@ -458,13 +514,13 @@ const App: React.FC = () => {
                 {/* Product Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-24">
                   {productsData.data.map(p => (
-                    <ProductCard 
-                      key={p.id} 
-                      product={p} 
-                      onClick={navigateToDetail} 
-                      onAddToCart={handleAddToCart} 
-                      isWishlisted={user?.wishlist?.includes(p.id)} 
-                      onToggleWishlist={handleToggleWishlist} 
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onClick={navigateToDetail}
+                      onAddToCart={handleAddToCart}
+                      isWishlisted={user?.wishlist?.includes(p.id)}
+                      onToggleWishlist={handleToggleWishlist}
                     />
                   ))}
                 </div>
@@ -487,7 +543,15 @@ const App: React.FC = () => {
         {view === 'seller-dashboard' && <UserDashboard />}
         {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
         {view === 'admin' && <AdminDashboard />}
-        {view === 'detail' && selectedProduct && <ProductDetailView product={selectedProduct} user={user} onBack={() => setView('shop')} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} />}
+        {view === 'detail' && selectedProduct && (
+          <ProductDetailView
+            product={selectedProduct}
+            user={user}
+            onBack={() => setView('shop')}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+          />
+        )}
         {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
       </main>
       {view !== 'success' && <Footer onNavigate={(v) => setView(v)} />}

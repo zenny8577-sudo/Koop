@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../../services/db';
-import { Product, User, UserRole } from '../../types';
+import { SupabaseService } from '../../services/supabaseService';
+import { Product, User, UserRole, ProductStatus } from '../../types';
 import { ICONS } from '../../constants';
+import { AnalyticsService } from '../../services/analyticsService';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'users' | 'transactions'>('overview');
@@ -13,40 +14,100 @@ const AdminDashboard: React.FC = () => {
     pendingApprovals: 0,
     newUsers: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
+    AnalyticsService.trackEvent('admin_dashboard_view');
   }, []);
 
-  const loadData = () => {
-    const allProducts = db.getAllProductsAdmin();
-    const allUsers = db.getAllUsers();
-    
-    setProducts(allProducts);
-    setUsers(allUsers);
-    
-    setStats({
-      totalSales: allProducts.filter(p => p.status === ProductStatus.SOLD).length,
-      activeListings: allProducts.filter(p => p.status === ProductStatus.ACTIVE).length,
-      pendingApprovals: allProducts.filter(p => p.status === ProductStatus.PENDING_APPROVAL).length,
-      newUsers: allUsers.filter(u => new Date(u.createdAt).getTime() > Date.now() - 86400000 * 7).length
-    });
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Load products
+      const productsResponse = await SupabaseService.getProducts(1, 1000, {});
+      setProducts(productsResponse.data);
+
+      // Load users
+      const { data: usersData, error: usersError } = await SupabaseService.supabase
+        .from('users')
+        .select('*');
+
+      if (usersError) throw usersError;
+      setUsers(usersData);
+
+      // Calculate stats
+      setStats({
+        totalSales: productsResponse.data.filter(p => p.status === ProductStatus.SOLD).length,
+        activeListings: productsResponse.data.filter(p => p.status === ProductStatus.ACTIVE).length,
+        pendingApprovals: productsResponse.data.filter(p => p.status === ProductStatus.PENDING_APPROVAL).length,
+        newUsers: usersData.filter(u => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
+      });
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      console.error('Admin dashboard load error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const approveProduct = (productId: string) => {
-    db.updateProductStatus(productId, ProductStatus.ACTIVE);
-    loadData();
+  const approveProduct = async (productId: string) => {
+    try {
+      await SupabaseService.updateProductStatus(productId, ProductStatus.ACTIVE);
+      await loadData();
+      AnalyticsService.trackEvent('product_approved', { productId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve product');
+    }
   };
 
-  const rejectProduct = (productId: string) => {
-    db.updateProductStatus(productId, ProductStatus.REJECTED);
-    loadData();
+  const rejectProduct = async (productId: string) => {
+    try {
+      await SupabaseService.updateProductStatus(productId, ProductStatus.REJECTED);
+      await loadData();
+      AnalyticsService.trackEvent('product_rejected', { productId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject product');
+    }
   };
 
-  const verifyUser = (userId: string) => {
-    db.updateUserVerification(userId, 'verified');
-    loadData();
+  const verifyUser = async (userId: string) => {
+    try {
+      await SupabaseService.updateUser(userId, { verification_status: 'verified' });
+      await loadData();
+      AnalyticsService.trackEvent('user_verified', { userId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to verify user');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF4F00]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
+          <p className="text-rose-600">{error}</p>
+          <button
+            onClick={loadData}
+            className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-16 animate-fadeIn pb-40">
@@ -66,9 +127,9 @@ const AdminDashboard: React.FC = () => {
               { id: 'users', label: 'Gebruikers' },
               { id: 'transactions', label: 'Transacties' }
             ].map(tab => (
-              <button 
+              <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)} 
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 group ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
@@ -182,7 +243,7 @@ const AdminDashboard: React.FC = () => {
                     <td className="px-12 py-8">
                       <div className="flex items-center gap-6">
                         <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                          {u.email[0].toUpperCase()}
+                          {u.email?.[0]?.toUpperCase()}
                         </div>
                         <div className="space-y-1">
                           <span className="text-sm font-black text-slate-900 uppercase tracking-tight block">{u.email}</span>

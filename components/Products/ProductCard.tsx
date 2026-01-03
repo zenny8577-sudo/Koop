@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Product } from '../../types';
-import { db } from '../../services/db';
+import { SupabaseService } from '../../services/supabaseService';
+import { AnalyticsService } from '../../services/analyticsService';
 
 interface ProductCardProps {
   product: Product;
@@ -16,12 +16,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product, onClick, onAddToCart, onToggleWishlist, isWishlisted, variant = 'default' 
 }) => {
   const isVerified = product.verification?.overallPassed;
-  const seller = db.getUser(product.sellerId);
-  const isSellerVerified = seller?.verificationStatus === 'verified';
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleWishlist?.(product.id);
+    AnalyticsService.trackEvent('wishlist_toggle', {
+      productId: product.id,
+      action: isWishlisted ? 'remove' : 'add'
+    });
+  };
+
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddToCart?.(product);
+    AnalyticsService.trackEvent('add_to_cart', {
+      productId: product.id,
+      category: product.category
+    });
   };
 
   if (variant === 'featured') {
@@ -108,14 +119,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-900">Verified</span>
             </div>
           )}
-          {isSellerVerified && (
-            <div className="bg-blue-600/90 backdrop-blur px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-2 border border-blue-400/30">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A9 9 0 1121 12c0-2.392-.934-4.567-2.458-6.185z" />
-              </svg>
-              <span className="text-[8px] font-black uppercase tracking-widest text-white">Top Seller</span>
-            </div>
-          )}
         </div>
 
         {/* Action Button Strip */}
@@ -127,7 +130,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             Details
           </button>
           <button 
-            onClick={(e) => { e.stopPropagation(); onAddToCart?.(product); }}
+            onClick={handleAddToCartClick}
             className="w-12 h-12 bg-[#FF4F00] text-white flex items-center justify-center rounded-2xl shadow-xl hover:bg-slate-900 transition-all transform active:scale-95"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">

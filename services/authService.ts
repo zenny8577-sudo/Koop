@@ -1,32 +1,104 @@
-
+import { supabase } from './supabaseService';
 import { User, UserRole } from '../types';
 
-// Em um cenário real, você importaria:
-// import { createClient } from '@supabase/supabase-js'
-
 export const authService = {
-  // Simula o fluxo do Supabase Auth
-  async signUp(email: string, role: UserRole): Promise<User> {
-    return {
-      id: Math.random().toString(36).substr(2, 9),
+  async signUp(email: string, password: string, role: UserRole = UserRole.BUYER) {
+    const { data, error } = await supabase.auth.signUp({
       email,
+      password,
+      options: {
+        data: {
+          role
+        }
+      }
+    });
+
+    if (error) throw error;
+
+    if (!data.user) throw new Error('User not created');
+
+    // Create user record in users table
+    const userRecord = {
+      id: data.user.id,
+      email: data.user.email,
       role,
-      stripeAccountId: role === UserRole.SELLER ? 'acct_pending' : undefined
+      created_at: new Date().toISOString(),
+      verification_status: 'unverified'
+    };
+
+    const { error: userError } = await supabase
+      .from('users')
+      .insert([userRecord]);
+
+    if (userError) throw userError;
+
+    return {
+      id: data.user.id,
+      email: data.user.email,
+      role
     };
   },
 
-  async signIn(email: string): Promise<User> {
-    // Simulação de login
-    if (email.includes('admin')) {
-      return { id: 'admin_1', email, role: UserRole.ADMIN };
-    }
-    if (email.includes('seller')) {
-      return { id: 'seller_1', email, role: UserRole.SELLER, stripeAccountId: 'acct_123' };
-    }
-    return { id: 'buyer_1', email, role: UserRole.BUYER };
+  async signIn(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    if (!data.user) throw new Error('Invalid credentials');
+
+    // Get user role from database
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role, verification_status')
+      .eq('id', data.user.id)
+      .single();
+
+    if (userError) throw userError;
+
+    return {
+      id: data.user.id,
+      email: data.user.email,
+      role: userData.role,
+      verificationStatus: userData.verification_status
+    };
   },
 
   async signOut() {
-    console.log("Supabase session cleared");
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
+  async getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error) throw error;
+    if (!user) return null;
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (userError) throw userError;
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: userData.role,
+      verificationStatus: userData.verification_status,
+      ...userData
+    };
+  },
+
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
   }
 };

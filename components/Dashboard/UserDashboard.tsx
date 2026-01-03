@@ -1,16 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { Product, ProductStatus, ProductCondition, User } from '../../types';
-import { db } from '../../services/db';
+import { SupabaseService } from '../../services/supabaseService';
+import { AnalyticsService } from '../../services/analyticsService';
 import ProfileSettings from '../Profile/ProfileSettings';
 
 const UserDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'inventory' | 'analytics' | 'profile'>('inventory');
-  const [user, setUser] = useState<User>(db.getUser('user_123'));
+  const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [error, setError] = useState<string | null>(null);
+
   const [newProduct, setNewProduct] = useState({
     title: '',
     price: '',
@@ -21,40 +22,89 @@ const UserDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    refresh();
+    loadUserData();
+    AnalyticsService.trackEvent('seller_dashboard_view');
   }, []);
 
-  const refresh = () => {
-    const allProducts = db.getAllProductsAdmin();
-    setProducts(allProducts.filter(p => p.sellerId === user.id));
+  const loadUserData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Get current user
+      const { data: { user: authUser }, error: authError } = await SupabaseService.supabase.auth.getUser();
+      if (authError) throw authError;
+
+      if (!authUser) throw new Error('User not authenticated');
+
+      // Get user details
+      const { data: userData, error: userError } = await SupabaseService.supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (userError) throw userError;
+      setUser(userData);
+
+      // Get user's products
+      const productsResponse = await SupabaseService.getProducts(1, 1000, {});
+      setProducts(productsResponse.data.filter(p => p.sellerId === authUser.id));
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      console.error('Dashboard load error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    setUser(updatedUser);
+  const refresh = async () => {
+    await loadUserData();
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleUpdateUser = async (updatedUser: User) => {
+    try {
+      const { data, error } = await SupabaseService.updateUser(updatedUser.id, updatedUser);
+      if (error) throw error;
+      setUser(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
+    }
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      db.createProduct({
+    setError(null);
+
+    try {
+      await SupabaseService.createProduct({
         title: newProduct.title,
         price: parseFloat(newProduct.price),
         category: newProduct.category,
         condition: newProduct.condition,
         description: newProduct.description,
-        sellerId: user.id,
+        sellerId: user?.id,
         status: ProductStatus.PENDING_APPROVAL,
         image: newProduct.image,
         commissionRate: 0.15,
         commissionAmount: parseFloat(newProduct.price) * 0.15,
       });
-      refresh();
-      setIsLoading(false);
+
+      await refresh();
       setShowAddModal(false);
       setNewProduct({ title: '', price: '', category: 'Elektronica', condition: ProductCondition.LIKE_NEW, description: '', image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800' });
-      alert("Bedankt! Uw item is ingediend e wordt door onze curatoren gecontroleerd.");
-    }, 1000);
+
+      AnalyticsService.trackEvent('product_submitted', {
+        productId: 'new',
+        category: newProduct.category
+      });
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add product');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const stats = {
@@ -63,6 +113,31 @@ const UserDashboard: React.FC = () => {
     activeCount: products.filter(p => p.status === ProductStatus.ACTIVE).length,
     pendingCount: products.filter(p => p.status === ProductStatus.PENDING_APPROVAL).length,
   };
+
+  if (isLoading && !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF4F00]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
+          <p className="text-rose-600">{error}</p>
+          <button
+            onClick={loadUserData}
+            className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-16 animate-fadeIn pb-40">
@@ -81,9 +156,9 @@ const UserDashboard: React.FC = () => {
               { id: 'analytics', label: 'Verkoopcijfers' },
               { id: 'profile', label: 'Profiel' }
             ].map(tab => (
-              <button 
+              <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)} 
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 group ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
@@ -92,7 +167,7 @@ const UserDashboard: React.FC = () => {
             ))}
           </nav>
         </div>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="px-12 py-6 bg-slate-950 text-white rounded-[32px] font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-2xl"
         >
@@ -197,7 +272,7 @@ const UserDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'profile' && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
+      {activeTab === 'profile' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
 
       {showAddModal && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 animate-fadeIn">
