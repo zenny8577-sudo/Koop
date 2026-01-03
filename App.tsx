@@ -46,6 +46,19 @@ const App: React.FC = () => {
     AnalyticsService.pageView(view);
   }, [filters, view]);
 
+  useEffect(() => {
+    // Redirect to appropriate dashboard after login
+    if (user) {
+      if (user.role === UserRole.ADMIN) {
+        setView('admin');
+      } else if (user.role === UserRole.SELLER) {
+        setView('seller-dashboard');
+      } else if (user.role === UserRole.BUYER) {
+        setView('buyer-dashboard');
+      }
+    }
+  }, [user]);
+
   const loadProducts = async () => {
     try {
       const data = await SupabaseService.getProducts(1, 100, filters);
@@ -165,7 +178,15 @@ const App: React.FC = () => {
         onAdmin={() => setView('admin')}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenLogin={() => setIsLoginOpen(true)}
-        onDashboard={() => setView(user?.role === UserRole.ADMIN ? 'admin' : user?.role === UserRole.SELLER ? 'seller-dashboard' : 'buyer-dashboard')}
+        onDashboard={() => {
+          if (user?.role === UserRole.ADMIN) {
+            setView('admin');
+          } else if (user?.role === UserRole.SELLER) {
+            setView('seller-dashboard');
+          } else {
+            setView('buyer-dashboard');
+          }
+        }}
         onSell={() => setView('sell')}
         onLogout={handleLogout}
         user={user}
