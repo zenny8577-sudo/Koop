@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../src/integrations/supabase/client';
 import { Product, ProductStatus, ProductCondition, User } from '../../types';
-import { SupabaseService } from '../../services/supabaseService';
 import { AnalyticsService } from '../../services/analyticsService';
 import ProfileSettings from '../Profile/ProfileSettings';
 
@@ -11,7 +11,6 @@ const UserDashboard: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [newProduct, setNewProduct] = useState({
     title: '',
     price: '',
@@ -31,13 +30,12 @@ const UserDashboard: React.FC = () => {
     setError(null);
     try {
       // Get current user
-      const { data: { user: authUser }, error: authError } = await SupabaseService.supabase.auth.getUser();
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
-
       if (!authUser) throw new Error('User not authenticated');
 
       // Get user details
-      const { data: userData, error: userError } = await SupabaseService.supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', authUser.id)
@@ -47,9 +45,13 @@ const UserDashboard: React.FC = () => {
       setUser(userData);
 
       // Get user's products
-      const productsResponse = await SupabaseService.getProducts(1, 1000, {});
-      setProducts(productsResponse.data.filter(p => p.sellerId === authUser.id));
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('seller_id', authUser.id);
 
+      if (productsError) throw productsError;
+      setProducts(productsData || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       console.error('Dashboard load error:', err);
@@ -64,7 +66,13 @@ const UserDashboard: React.FC = () => {
 
   const handleUpdateUser = async (updatedUser: User) => {
     try {
-      const { data, error } = await SupabaseService.updateUser(updatedUser.id, updatedUser);
+      const { data, error } = await supabase
+        .from('users')
+        .update(updatedUser)
+        .eq('id', updatedUser.id)
+        .select()
+        .single();
+
       if (error) throw error;
       setUser(data);
     } catch (err) {
@@ -76,30 +84,41 @@ const UserDashboard: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-
     try {
-      await SupabaseService.createProduct({
-        title: newProduct.title,
-        price: parseFloat(newProduct.price),
-        category: newProduct.category,
-        condition: newProduct.condition,
-        description: newProduct.description,
-        sellerId: user?.id,
-        status: ProductStatus.PENDING_APPROVAL,
-        image: newProduct.image,
-        commissionRate: 0.15,
-        commissionAmount: parseFloat(newProduct.price) * 0.15,
-      });
+      const { data, error } = await supabase
+        .from('products')
+        .insert([{
+          title: newProduct.title,
+          price: parseFloat(newProduct.price),
+          category: newProduct.category,
+          condition: newProduct.condition,
+          description: newProduct.description,
+          seller_id: user?.id,
+          status: ProductStatus.PENDING_APPROVAL,
+          image: newProduct.image,
+          commission_rate: 0.15,
+          commission_amount: parseFloat(newProduct.price) * 0.15,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
 
       await refresh();
       setShowAddModal(false);
-      setNewProduct({ title: '', price: '', category: 'Elektronica', condition: ProductCondition.LIKE_NEW, description: '', image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800' });
-
-      AnalyticsService.trackEvent('product_submitted', {
-        productId: 'new',
-        category: newProduct.category
+      setNewProduct({
+        title: '',
+        price: '',
+        category: 'Elektronica',
+        condition: ProductCondition.LIKE_NEW,
+        description: '',
+        image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800'
       });
 
+      AnalyticsService.trackEvent('product_submitted', {
+        productId: data.id,
+        category: newProduct.category
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add product');
     } finally {
@@ -128,8 +147,8 @@ const UserDashboard: React.FC = () => {
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
           <p className="text-rose-600">{error}</p>
-          <button
-            onClick={loadUserData}
+          <button 
+            onClick={loadUserData} 
             className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
           >
             Retry
@@ -148,7 +167,8 @@ const UserDashboard: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Verkoper Dashboard</span>
           </div>
           <h1 className="text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter uppercase leading-[0.85]">
-            Mijn <br /> <span className="text-[#FF4F00]">Handel.</span>
+            Mijn <br />
+            <span className="text-[#FF4F00]">Handel.</span>
           </h1>
           <nav className="flex gap-10 pt-4">
             {[
@@ -156,9 +176,9 @@ const UserDashboard: React.FC = () => {
               { id: 'analytics', label: 'Verkoopcijfers' },
               { id: 'profile', label: 'Profiel' }
             ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as any)} 
                 className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 group ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
@@ -167,8 +187,8 @@ const UserDashboard: React.FC = () => {
             ))}
           </nav>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
+        <button 
+          onClick={() => setShowAddModal(true)} 
           className="px-12 py-6 bg-slate-950 text-white rounded-[32px] font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-2xl"
         >
           Nieuw Item Toevoegen +
@@ -190,7 +210,7 @@ const UserDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-
+          
           <div className="bg-white rounded-[60px] border border-slate-100 overflow-hidden shadow-sm">
             <div className="px-12 py-10 border-b border-slate-50 flex justify-between items-center">
               <h2 className="text-xl font-black uppercase tracking-tighter text-slate-950">Mijn Inventaris</h2>
@@ -208,7 +228,9 @@ const UserDashboard: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {products.length === 0 ? (
-                    <tr><td colSpan={4} className="px-12 py-32 text-center text-slate-300 font-black uppercase tracking-widest">Leeg</td></tr>
+                    <tr>
+                      <td colSpan={4} className="px-12 py-32 text-center text-slate-300 font-black uppercase tracking-widest">Leeg</td>
+                    </tr>
                   ) : (
                     products.map(p => (
                       <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -221,11 +243,15 @@ const UserDashboard: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-12 py-8 text-center"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{p.category}</span></td>
                         <td className="px-12 py-8 text-center">
-                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.status === ProductStatus.ACTIVE ? 'bg-emerald-50 text-emerald-500' : p.status === ProductStatus.SOLD ? 'bg-slate-950 text-white' : 'bg-orange-50 text-[#FF4F00]'}`}>{p.status.replace('_', ' ')}</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{p.category}</span>
                         </td>
-                        <td className="px-12 py-8 text-right font-black text-slate-950 text-base">€ {p.price.toLocaleString()}</td>
+                        <td className="px-12 py-8 text-center">
+                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.status === ProductStatus.ACTIVE ? 'bg-emerald-50 text-emerald-500' : p.status === ProductStatus.SOLD ? 'bg-slate-950 text-white' : 'bg-orange-50 text-[#FF4F00]'}`}>
+                            {p.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-12 py-8 text-right font-black text-slate-900 text-base">€ {p.price.toLocaleString()}</td>
                       </tr>
                     ))
                   )}
@@ -238,37 +264,43 @@ const UserDashboard: React.FC = () => {
 
       {activeTab === 'analytics' && (
         <div className="bg-slate-950 rounded-[80px] p-20 text-white animate-fadeIn space-y-20">
-           <div className="flex justify-between items-end">
-              <div className="space-y-4">
-                 <h2 className="text-5xl font-black uppercase tracking-tighter">Omzet Groei.</h2>
-                 <p className="text-white/40 font-medium">Prestaties van de afgelopen 30 dagen</p>
+          <div className="flex justify-between items-end">
+            <div className="space-y-4">
+              <h2 className="text-5xl font-black uppercase tracking-tighter">Omzet Groei.</h2>
+              <p className="text-white/40 font-medium">Prestaties van de afgelopen 30 dagen</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#FF4F00] mb-2">Huidige Maand</p>
+              <p className="text-6xl font-black">€ {stats.totalSales.toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="h-64 flex items-end gap-4">
+            {[60, 45, 80, 55, 90, 70, 100].map((h, i) => (
+              <div 
+                key={i} 
+                className="flex-1 bg-white/5 rounded-t-3xl relative group hover:bg-[#FF4F00]/20 transition-all duration-500"
+              >
+                <div 
+                  className="absolute bottom-0 left-0 w-full bg-[#FF4F00] rounded-t-3xl transition-all duration-1000 group-hover:shadow-[0_-20px_40px_rgba(255,79,0,0.3)]" 
+                  style={{ height: `${h}%` }} 
+                />
               </div>
-              <div className="text-right">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-[#FF4F00] mb-2">Huidige Maand</p>
-                 <p className="text-6xl font-black">€ {stats.totalSales.toLocaleString()}</p>
-              </div>
-           </div>
-           <div className="h-64 flex items-end gap-4">
-              {[60, 45, 80, 55, 90, 70, 100].map((h, i) => (
-                <div key={i} className="flex-1 bg-white/5 rounded-t-3xl relative group hover:bg-[#FF4F00]/20 transition-all duration-500">
-                   <div className="absolute bottom-0 left-0 w-full bg-[#FF4F00] rounded-t-3xl transition-all duration-1000 group-hover:shadow-[0_-20px_40px_rgba(255,79,0,0.3)]" style={{ height: `${h}%` }} />
-                </div>
-              ))}
-           </div>
-           <div className="grid grid-cols-3 gap-12 pt-12 border-t border-white/5">
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Conversie</p>
-                 <p className="text-3xl font-black text-emerald-400">12.4%</p>
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Gem. Orderwaarde</p>
-                 <p className="text-3xl font-black">€ 1.250</p>
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Bezoekers</p>
-                 <p className="text-3xl font-black">2.4k</p>
-              </div>
-           </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-12 pt-12 border-t border-white/5">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Conversie</p>
+              <p className="text-3xl font-black text-emerald-400">12.4%</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Gem. Orderwaarde</p>
+              <p className="text-3xl font-black">€ 1.250</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Bezoekers</p>
+              <p className="text-3xl font-black">2.4k</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -281,18 +313,54 @@ const UserDashboard: React.FC = () => {
             <header className="flex justify-between items-start mb-16">
               <div className="space-y-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF4F00]">Curatie Aanvraag</span>
-                <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-slate-950 leading-[0.85]">Item <br /> Aanmelden.</h2>
+                <h2 className="text-5xl lg:text-6xl font-black uppercase tracking-tighter text-slate-950 leading-[0.85]">
+                  Item <br />
+                  Aanmelden.
+                </h2>
               </div>
-              <button type="button" disabled={isLoading} onClick={() => setShowAddModal(false)} className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-950 hover:text-white transition-all"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+              <button 
+                type="button" 
+                disabled={isLoading} 
+                onClick={() => setShowAddModal(false)} 
+                className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-950 hover:text-white transition-all"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </header>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="space-y-8">
-                <input required placeholder="TITEL" className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-black text-lg outline-none" value={newProduct.title} onChange={e => setNewProduct({...newProduct, title: e.target.value})} />
-                <input required placeholder="PRIJS" type="number" className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-black text-lg outline-none" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                <input 
+                  required 
+                  placeholder="TITEL" 
+                  className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-black text-lg outline-none" 
+                  value={newProduct.title} 
+                  onChange={e => setNewProduct({...newProduct, title: e.target.value})} 
+                />
+                <input 
+                  required 
+                  placeholder="PRIJS" 
+                  type="number" 
+                  className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-black text-lg outline-none" 
+                  value={newProduct.price} 
+                  onChange={e => setNewProduct({...newProduct, price: e.target.value})} 
+                />
               </div>
-              <textarea required placeholder="OMSCHRIJVING" className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-bold text-sm outline-none h-full" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+              <textarea 
+                required 
+                placeholder="OMSCHRIJVING" 
+                className="w-full bg-slate-50 border-none rounded-[32px] p-8 font-bold text-sm outline-none h-full" 
+                value={newProduct.description} 
+                onChange={e => setNewProduct({...newProduct, description: e.target.value})} 
+              />
               <div className="lg:col-span-2 pt-6">
-                <button type="submit" disabled={isLoading} className="w-full py-9 bg-slate-950 text-white font-black rounded-full uppercase tracking-[0.3em] text-[13px] shadow-3xl hover:bg-[#FF4F00] transition-all">{isLoading ? 'Verzenden...' : 'Indienen ter Goedkeuring'}</button>
+                <button 
+                  type="submit" 
+                  disabled={isLoading} 
+                  className="w-full py-9 bg-slate-950 text-white font-black rounded-full uppercase tracking-[0.3em] text-[13px] shadow-3xl hover:bg-[#FF4F00] transition-all"
+                >
+                  {isLoading ? 'Verzenden...' : 'Indienen ter Goedkeuring'}
+                </button>
               </div>
             </div>
           </form>

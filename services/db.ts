@@ -66,6 +66,7 @@ class DatabaseService {
 
       products.push(product);
     }
+
     return products;
   }
 
@@ -89,7 +90,8 @@ class DatabaseService {
         lastName: 'Diogo',
         phone: '+31 6 87654321',
         verificationStatus: 'verified',
-        wishlist: []
+        wishlist: [],
+        stripeAccountId: 'acct_123456789'
       },
       {
         id: 'buyer_1',
@@ -113,16 +115,16 @@ class DatabaseService {
 
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(searchTerm) ||
-        p.description.toLowerCase().includes(searchTerm) ||
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(searchTerm) || 
+        p.description.toLowerCase().includes(searchTerm) || 
         p.sku.toLowerCase().includes(searchTerm)
       );
     }
 
     if (filters.minPrice || filters.maxPrice) {
-      filtered = filtered.filter(p =>
-        p.price >= (filters.minPrice || 0) &&
+      filtered = filtered.filter(p => 
+        p.price >= (filters.minPrice || 0) && 
         p.price <= (filters.maxPrice || Infinity)
       );
     }
@@ -139,10 +141,7 @@ class DatabaseService {
     const end = start + limit;
     const paginated = filtered.slice(start, end);
 
-    return {
-      data: paginated,
-      total: filtered.length
-    };
+    return { data: paginated, total: filtered.length };
   }
 
   getProduct(id: string): Product | undefined {
@@ -164,6 +163,7 @@ class DatabaseService {
       status: ProductStatus.PENDING_APPROVAL,
       createdAt: new Date().toISOString()
     };
+
     this.products.push(newProduct);
     return newProduct;
   }
@@ -251,6 +251,7 @@ class DatabaseService {
         createdAt: new Date().toISOString()
       });
     }
+
     return count;
   }
 
@@ -294,6 +295,14 @@ class DatabaseService {
 
   hasReviewed(userId: string, productId: string): boolean {
     return this.reviews.some(r => r.userId === userId && r.productId === productId);
+  }
+
+  submitVerification(userId: string, documents: string[]): User | null {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) return null;
+
+    user.verificationStatus = 'pending';
+    return user;
   }
 }
 

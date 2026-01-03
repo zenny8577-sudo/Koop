@@ -14,7 +14,7 @@ import SellRegistrationForm from './components/Auth/SellRegistrationForm';
 import SellInfoPage from './components/Store/SellInfoPage';
 import InfoPages from './components/Store/InfoPages';
 import ProductList from './components/Products/ProductList';
-import { SupabaseService } from './services/supabaseService';
+import { supabase } from './src/integrations/supabase/client';
 import { Product, User, UserRole, CartItem, Address, ProductStatus } from './types';
 import { AnalyticsService } from './services/analyticsService';
 import HomeView from './components/App/HomeView';
@@ -28,18 +28,8 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [filters, setFilters] = useState({ 
-    search: '', 
-    category: 'All', 
-    condition: 'All', 
-    minPrice: 0, 
-    maxPrice: 10000, 
-    sortBy: 'newest' 
-  });
-  const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ 
-    data: [], 
-    total: 0 
-  });
+  const [filters, setFilters] = useState({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
+  const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
   const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
@@ -63,8 +53,30 @@ const App: React.FC = () => {
 
   const loadProducts = async () => {
     try {
-      const data = await SupabaseService.getProducts(1, 100, filters);
-      setProductsData(data);
+      // Mock implementation for now
+      // In a real app, this would fetch from Supabase
+      const mockProducts = [
+        {
+          id: '1',
+          sellerId: 'user_123',
+          title: 'iPhone 15 Pro',
+          description: 'Premium quality item in LIKE_NEW condition.',
+          price: 999,
+          condition: 'LIKE_NEW',
+          status: ProductStatus.ACTIVE,
+          category: 'Elektronica',
+          image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800',
+          commissionRate: 0.15,
+          commissionAmount: 149.85,
+          sku: 'KOOP-TECH-1001',
+          barcode: '871234561001',
+          weight: 0.2,
+          shippingMethods: ['postnl', 'dhl'],
+          is3DModel: false
+        }
+      ];
+      
+      setProductsData({ data: mockProducts, total: 1 });
     } catch (error) {
       console.error('Failed to load products:', error);
     }
@@ -80,13 +92,8 @@ const App: React.FC = () => {
       setIsLoginOpen(true);
       return;
     }
-    
-    try {
-      await SupabaseService.toggleWishlist(user.id, productId);
-      loadProducts();
-    } catch (error) {
-      console.error('Failed to toggle wishlist:', error);
-    }
+    // In a real implementation, this would update the wishlist in Supabase
+    console.log('Toggle wishlist for product:', productId);
   };
 
   const handleUpdateQuantity = (productId: string, delta: number) => {
@@ -107,7 +114,7 @@ const App: React.FC = () => {
       AnalyticsService.trackEvent('checkout_completed', {
         items_count: cart.length,
         total_amount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
-        payment_method: paymentMethod
+        paymentMethod: paymentMethod
       });
     } catch (error) {
       console.error('Checkout completion error:', error);
@@ -118,7 +125,6 @@ const App: React.FC = () => {
     try {
       setIsLoginOpen(false);
       AnalyticsService.trackEvent('user_login');
-      
       // Navigate to appropriate dashboard
       if (user.role === UserRole.ADMIN) {
         setView('admin');
@@ -154,14 +160,7 @@ const App: React.FC = () => {
   const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const resetFilters = () => {
-    setFilters({ 
-      search: '', 
-      category: 'All', 
-      condition: 'All', 
-      minPrice: 0, 
-      maxPrice: 10000, 
-      sortBy: 'newest' 
-    });
+    setFilters({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
   };
 
   const removeFilter = (key: keyof typeof filters) => {
@@ -178,21 +177,17 @@ const App: React.FC = () => {
   }
 
   if (view === 'checkout') {
-    return <CheckoutView 
-      items={cart} 
-      onBack={() => setView('shop')} 
-      onComplete={handleCheckoutComplete} 
-    />;
+    return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
   }
 
   return (
     <div className="min-h-screen bg-white">
       <Navbar 
-        onHome={() => setView('home')}
-        onShop={() => setView('shop')}
-        onAdmin={() => setView('admin')}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenLogin={() => setIsLoginOpen(true)}
+        onHome={() => setView('home')} 
+        onShop={() => setView('shop')} 
+        onAdmin={() => setView('admin')} 
+        onOpenCart={() => setIsCartOpen(true)} 
+        onOpenLogin={() => setIsLoginOpen(true)} 
         onDashboard={() => {
           if (user?.role === UserRole.ADMIN) {
             setView('admin');
@@ -201,23 +196,23 @@ const App: React.FC = () => {
           } else {
             setView('buyer-dashboard');
           }
-        }}
-        onSell={() => setView('sell')}
-        onLogout={handleLogout}
-        user={user}
-        cartCount={cartCount}
+        }} 
+        onSell={() => setView('sell')} 
+        onLogout={handleLogout} 
+        user={user} 
+        cartCount={cartCount} 
       />
       
       <CartDrawer 
         isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)}
-        items={cart}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemove={handleRemoveFromCart}
+        onClose={() => setIsCartOpen(false)} 
+        items={cart} 
+        onUpdateQuantity={handleUpdateQuantity} 
+        onRemove={handleRemoveFromCart} 
         onCheckout={() => {
           setIsCartOpen(false);
           setView('checkout');
-        }}
+        }} 
       />
       
       <LoginView 
@@ -229,12 +224,12 @@ const App: React.FC = () => {
       <main className="min-h-screen">
         {view === 'home' && (
           <HomeView 
-            products={productsData.data}
-            user={user}
-            onViewProduct={navigateToDetail}
-            onAddToCart={handleAddToCart}
-            onToggleWishlist={handleToggleWishlist}
-            onNavigate={setView}
+            products={productsData.data} 
+            user={user} 
+            onViewProduct={navigateToDetail} 
+            onAddToCart={handleAddToCart} 
+            onToggleWishlist={handleToggleWishlist} 
+            onNavigate={setView} 
           />
         )}
         
@@ -242,38 +237,39 @@ const App: React.FC = () => {
         
         {view === 'shop' && (
           <ShopView 
-            products={productsData.data}
-            filters={filters}
-            user={user}
-            onViewProduct={navigateToDetail}
-            onAddToCart={handleAddToCart}
-            onToggleWishlist={handleToggleWishlist}
-            onFilterChange={setFilters}
-            onResetFilters={resetFilters}
-            onRemoveFilter={removeFilter}
+            products={productsData.data} 
+            filters={filters} 
+            user={user} 
+            onViewProduct={navigateToDetail} 
+            onAddToCart={handleAddToCart} 
+            onToggleWishlist={handleToggleWishlist} 
+            onFilterChange={setFilters} 
+            onResetFilters={resetFilters} 
+            onRemoveFilter={removeFilter} 
           />
         )}
         
         {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
+        
         {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
         
         {view === 'seller-dashboard' && user && <UserDashboard />}
+        
         {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
+        
         {view === 'admin' && user && <AdminDashboard />}
         
         {view === 'detail' && selectedProduct && (
           <ProductDetailView 
-            product={selectedProduct}
-            user={user}
-            onBack={() => setView('shop')}
-            onAddToCart={handleAddToCart}
-            onToggleWishlist={handleToggleWishlist}
+            product={selectedProduct} 
+            user={user} 
+            onBack={() => setView('shop')} 
+            onAddToCart={handleAddToCart} 
+            onToggleWishlist={handleToggleWishlist} 
           />
         )}
         
-        {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && 
-          <InfoPages type={view as any} />
-        }
+        {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
       </main>
       
       {view !== 'success' && <Footer onNavigate={setView} />}

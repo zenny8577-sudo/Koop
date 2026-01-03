@@ -1,6 +1,9 @@
 import { supabase } from '../src/integrations/supabase/client';
 import { Product, ProductStatus, User } from '../types';
 
+// Export supabase client for direct access
+export { supabase };
+
 export class SupabaseService {
   static async getProducts(page: number, limit: number, filters: any) {
     try {

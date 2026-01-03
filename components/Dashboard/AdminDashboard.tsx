@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SupabaseService } from '../../services/supabaseService';
+import { supabase } from '../../src/integrations/supabase/client';
 import { Product, User, UserRole, ProductStatus } from '../../types';
 import { ICONS } from '../../constants';
 import { AnalyticsService } from '../../services/analyticsService';
@@ -8,12 +8,7 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'users' | 'transactions'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [stats, setStats] = useState({
-    totalSales: 0,
-    activeListings: 0,
-    pendingApprovals: 0,
-    newUsers: 0
-  });
+  const [stats, setStats] = useState({ totalSales: 0, activeListings: 0, pendingApprovals: 0, newUsers: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,25 +22,28 @@ const AdminDashboard: React.FC = () => {
     setError(null);
     try {
       // Load products
-      const productsResponse = await SupabaseService.getProducts(1, 1000, {});
-      setProducts(productsResponse.data);
-
+      const productsResponse = await supabase
+        .from('products')
+        .select('*');
+      
+      if (productsResponse.error) throw productsResponse.error;
+      setProducts(productsResponse.data || []);
+      
       // Load users
-      const { data: usersData, error: usersError } = await SupabaseService.supabase
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('*');
-
+      
       if (usersError) throw usersError;
-      setUsers(usersData);
-
+      setUsers(usersData || []);
+      
       // Calculate stats
       setStats({
-        totalSales: productsResponse.data.filter(p => p.status === ProductStatus.SOLD).length,
-        activeListings: productsResponse.data.filter(p => p.status === ProductStatus.ACTIVE).length,
-        pendingApprovals: productsResponse.data.filter(p => p.status === ProductStatus.PENDING_APPROVAL).length,
-        newUsers: usersData.filter(u => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
+        totalSales: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.SOLD).length,
+        activeListings: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.ACTIVE).length,
+        pendingApprovals: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.PENDING_APPROVAL).length,
+        newUsers: (usersData || []).filter((u: any) => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
       });
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
       console.error('Admin dashboard load error:', err);
@@ -56,7 +54,12 @@ const AdminDashboard: React.FC = () => {
 
   const approveProduct = async (productId: string) => {
     try {
-      await SupabaseService.updateProductStatus(productId, ProductStatus.ACTIVE);
+      const { error } = await supabase
+        .from('products')
+        .update({ status: ProductStatus.ACTIVE })
+        .eq('id', productId);
+      
+      if (error) throw error;
       await loadData();
       AnalyticsService.trackEvent('product_approved', { productId });
     } catch (err) {
@@ -66,7 +69,12 @@ const AdminDashboard: React.FC = () => {
 
   const rejectProduct = async (productId: string) => {
     try {
-      await SupabaseService.updateProductStatus(productId, ProductStatus.REJECTED);
+      const { error } = await supabase
+        .from('products')
+        .update({ status: ProductStatus.REJECTED })
+        .eq('id', productId);
+      
+      if (error) throw error;
       await loadData();
       AnalyticsService.trackEvent('product_rejected', { productId });
     } catch (err) {
@@ -76,7 +84,12 @@ const AdminDashboard: React.FC = () => {
 
   const verifyUser = async (userId: string) => {
     try {
-      await SupabaseService.updateUser(userId, { verification_status: 'verified' });
+      const { error } = await supabase
+        .from('users')
+        .update({ verification_status: 'verified' })
+        .eq('id', userId);
+      
+      if (error) throw error;
       await loadData();
       AnalyticsService.trackEvent('user_verified', { userId });
     } catch (err) {
@@ -98,8 +111,8 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
           <p className="text-rose-600">{error}</p>
-          <button
-            onClick={loadData}
+          <button 
+            onClick={loadData} 
             className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
           >
             Retry
@@ -118,7 +131,8 @@ const AdminDashboard: React.FC = () => {
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Admin Dashboard</span>
           </div>
           <h1 className="text-6xl lg:text-7xl font-black text-slate-950 tracking-tighter uppercase leading-[0.85]">
-            Platform <br /> <span className="text-purple-600">Overzicht.</span>
+            Platform <br />
+            <span className="text-purple-600">Overzicht.</span>
           </h1>
           <nav className="flex gap-10 pt-4">
             {[
@@ -127,9 +141,9 @@ const AdminDashboard: React.FC = () => {
               { id: 'users', label: 'Gebruikers' },
               { id: 'transactions', label: 'Transacties' }
             ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as any)} 
                 className={`text-[11px] font-black uppercase tracking-[0.3em] transition-all relative pb-2 group ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {tab.label}
@@ -155,7 +169,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-
+          
           <div className="bg-white rounded-[60px] border border-slate-100 overflow-hidden shadow-sm">
             <div className="px-12 py-10 border-b border-slate-50 flex justify-between items-center">
               <h2 className="text-xl font-black uppercase tracking-tighter text-slate-950">Recentste Activiteit</h2>
@@ -202,16 +216,30 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{p.sellerId}</span>
                     </td>
                     <td className="px-12 py-8 text-center">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.status === ProductStatus.ACTIVE ? 'bg-emerald-50 text-emerald-500' : p.status === ProductStatus.SOLD ? 'bg-slate-950 text-white' : 'bg-orange-50 text-[#FF4F00]'}`}>{p.status.replace('_', ' ')}</span>
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.status === ProductStatus.ACTIVE ? 'bg-emerald-50 text-emerald-500' : p.status === ProductStatus.SOLD ? 'bg-slate-950 text-white' : 'bg-orange-50 text-[#FF4F00]'}`}>
+                        {p.status.replace('_', ' ')}
+                      </span>
                     </td>
                     <td className="px-12 py-8 text-right space-x-4">
                       {p.status === ProductStatus.PENDING_APPROVAL && (
                         <>
-                          <button onClick={() => approveProduct(p.id)} className="text-[10px] font-black text-emerald-500 hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">Goedkeuren</button>
-                          <button onClick={() => rejectProduct(p.id)} className="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">Afwijzen</button>
+                          <button 
+                            onClick={() => approveProduct(p.id)} 
+                            className="text-[10px] font-black text-emerald-500 hover:bg-emerald-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest"
+                          >
+                            Goedkeuren
+                          </button>
+                          <button 
+                            onClick={() => rejectProduct(p.id)} 
+                            className="text-[10px] font-black text-rose-500 hover:bg-rose-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest"
+                          >
+                            Afwijzen
+                          </button>
                         </>
                       )}
-                      <button className="text-[10px] font-black text-slate-400 hover:bg-slate-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">Bewerken</button>
+                      <button className="text-[10px] font-black text-slate-400 hover:bg-slate-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">
+                        Bewerken
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -261,9 +289,16 @@ const AdminDashboard: React.FC = () => {
                     </td>
                     <td className="px-12 py-8 text-right space-x-4">
                       {u.verificationStatus !== 'verified' && u.role === UserRole.SELLER && (
-                        <button onClick={() => verifyUser(u.id)} className="text-[10px] font-black text-blue-500 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">Verifiëren</button>
+                        <button 
+                          onClick={() => verifyUser(u.id)} 
+                          className="text-[10px] font-black text-blue-500 hover:bg-blue-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest"
+                        >
+                          Verifiëren
+                        </button>
                       )}
-                      <button className="text-[10px] font-black text-slate-400 hover:bg-slate-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">Logins Bekijken</button>
+                      <button className="text-[10px] font-black text-slate-400 hover:bg-slate-50 px-4 py-2 rounded-xl transition-all uppercase tracking-widest">
+                        Logins Bekijken
+                      </button>
                     </td>
                   </tr>
                 ))}

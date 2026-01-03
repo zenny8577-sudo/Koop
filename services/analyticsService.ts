@@ -1,9 +1,12 @@
+interface Window {
+  analytics?: any;
+}
+
 export class AnalyticsService {
   static trackEvent(eventName: string, properties: any = {}) {
     if (typeof window !== 'undefined' && (window as any).analytics) {
       (window as any).analytics.track(eventName, properties);
     }
-
     fetch('/api/track', {
       method: 'POST',
       headers: {

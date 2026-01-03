@@ -40,12 +40,7 @@ export class ProductVerificationService {
     const condition = this.verifyCondition(product.description);
     const priceFairness = this.compareMarketPrice(product);
     const legalCompliance = this.checkDutchRegulations(product.category);
-
-    const overallPassed =
-      authenticity.passed &&
-      condition.passed &&
-      priceFairness.passed &&
-      legalCompliance.passed;
+    const overallPassed = authenticity.passed && condition.passed && priceFairness.passed && legalCompliance.passed;
 
     return {
       authenticity,

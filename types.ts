@@ -33,17 +33,18 @@ export interface Product {
   sku: string;
   barcode: string;
   weight: number;
-  dimensions: string;
-  originCountry: string;
-  estimatedDelivery: string;
+  dimensions?: string;
+  originCountry?: string;
+  estimatedDelivery?: string;
   shippingMethods: string[];
-  warehouseLocation: string;
+  warehouseLocation?: string;
   supplierId?: string;
   is3DModel: boolean;
   modelGLB?: string;
   createdAt?: string;
   verification?: VerificationResult;
   gallery?: string[];
+  size?: string;
 }
 
 export interface User {
@@ -53,13 +54,13 @@ export interface User {
   firstName?: string;
   lastName?: string;
   phone?: string;
-  verificationStatus?: VerificationStatus;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
   wishlist?: string[];
   addresses?: UserAddress[];
   stripeAccountId?: string;
+  created_at?: string;
+  updated_at?: string;
 }
-
-export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
 
 export interface UserAddress {
   id: string;

@@ -1,11 +1,12 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-// Type declaration for import.meta.env
-declare const importMetaEnv: {
-  VITE_STRIPE_PUBLIC_KEY?: string;
-};
+interface ImportMeta {
+  env?: {
+    VITE_STRIPE_PUBLIC_KEY?: string;
+  };
+}
 
-const stripePromise = loadStripe((import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe((import.meta as any).env?.VITE_STRIPE_PUBLIC_KEY || '');
 
 export class PaymentService {
   static async createPaymentIntent(amount: number, currency: string = 'EUR') {
@@ -36,6 +37,7 @@ export class PaymentService {
     });
 
     if (error) throw error;
+
     return { success: true };
   }
 

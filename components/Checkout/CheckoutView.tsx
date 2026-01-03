@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem, Address } from '../../types';
 import StripeCheckout from './StripeCheckout';
-import { SupabaseService } from '../../services/supabaseService';
 import { AnalyticsService } from '../../services/analyticsService';
 
 interface CheckoutViewProps {
@@ -25,7 +24,14 @@ const shippingLabels: Record<string, string> = {
 const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }) => {
   const [step, setStep] = useState<'info' | 'shipping' | 'payment'>('info');
   const [address, setAddress] = useState<Address>({
-    firstName: '', lastName: '', email: '', street: '', houseNumber: '', city: '', zipCode: '', phone: ''
+    firstName: '',
+    lastName: '',
+    email: '',
+    street: '',
+    houseNumber: '',
+    city: '',
+    zipCode: '',
+    phone: ''
   });
   const [shippingMethod, setShippingMethod] = useState<'postnl' | 'dhl' | 'fedex'>('postnl');
   const [paymentMethod, setPaymentMethod] = useState<'ideal' | 'card'>('ideal');
@@ -39,13 +45,13 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
   const InputField = ({ label, value, onChange, placeholder, type = "text", half = false }: any) => (
     <div className={`space-y-2 ${half ? 'md:w-1/2' : 'w-full'}`}>
       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        required
-        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
+      <input 
+        type={type} 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        placeholder={placeholder} 
+        required 
+        className="w-full bg-slate-50 border-none rounded-2xl px-6 py-5 text-sm font-bold focus:ring-4 focus:ring-orange-500/10 outline-none transition-all" 
       />
     </div>
   );
@@ -53,25 +59,18 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
   const handlePaymentSuccess = async () => {
     setLoading(true);
     setError(null);
-
     try {
+      // In a real implementation, this would create transactions in Supabase
       for (const item of items) {
-        await SupabaseService.createTransaction({
-          product_id: item.product.id,
-          user_id: 'current-user-id',
-          amount: item.product.price * item.quantity,
-          status: 'completed',
-          shipping_method: shippingMethod,
-          created_at: new Date().toISOString()
-        });
+        console.log('Creating transaction for item:', item.product.id);
       }
-
+      
       AnalyticsService.trackEvent('checkout_completed', {
-        total_amount: total,
         items_count: items.length,
+        total_amount: total,
         payment_method: paymentMethod
       });
-
+      
       onComplete(address, paymentMethod);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete order');
@@ -87,8 +86,8 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
           <p className="text-rose-600">{error}</p>
-          <button
-            onClick={() => setError(null)}
+          <button 
+            onClick={() => setError(null)} 
             className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
           >
             Try Again
@@ -101,6 +100,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
   return (
     <div className="max-w-[1600px] mx-auto min-h-screen bg-white">
       <div className="flex flex-col lg:flex-row h-full">
+        {/* Step Flow Area */}
         <div className="flex-1 p-8 lg:p-24 lg:pr-32 border-r border-slate-100">
           <header className="mb-20">
             <div className="flex items-center gap-3 cursor-pointer mb-16" onClick={onBack}>
@@ -109,7 +109,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
               </div>
               <span className="text-2xl font-black tracking-tighter uppercase">KOOP<span className="text-[#FF4F00]">.</span></span>
             </div>
-
             <nav className="flex gap-6 items-center text-[11px] font-black uppercase tracking-widest text-slate-400">
               <span className={step === 'info' ? 'text-slate-900' : ''}>Informatie</span>
               <div className="w-4 h-[1px] bg-slate-200" />
@@ -118,50 +117,84 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
               <span className={step === 'payment' ? 'text-slate-900' : ''}>Betaling</span>
             </nav>
           </header>
-
+          
           <div className="animate-fadeIn max-w-2xl">
             {step === 'info' && (
               <div className="space-y-16">
                 <section className="space-y-8">
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Persoonlijke Gegevens</h2>
-                  <InputField label="E-mail" value={address.email} onChange={(v: string) => setAddress({...address, email: v})} placeholder="jouw@email.com" type="email" />
+                  <InputField 
+                    label="E-mail" 
+                    value={address.email} 
+                    onChange={(v: string) => setAddress({...address, email: v})} 
+                    placeholder="jouw@email.com" 
+                    type="email" 
+                  />
                 </section>
-
+                
                 <section className="space-y-8">
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Bezorgadres</h2>
                   <div className="flex flex-col md:flex-row gap-6">
-                    <InputField label="Voornaam" value={address.firstName} onChange={(v: string) => setAddress({...address, firstName: v})} placeholder="Voornaam" half />
-                    <InputField label="Achternaam" value={address.lastName} onChange={(v: string) => setAddress({...address, lastName: v})} placeholder="Achternaam" half />
+                    <InputField 
+                      label="Voornaam" 
+                      value={address.firstName} 
+                      onChange={(v: string) => setAddress({...address, firstName: v})} 
+                      placeholder="Voornaam" 
+                      half 
+                    />
+                    <InputField 
+                      label="Achternaam" 
+                      value={address.lastName} 
+                      onChange={(v: string) => setAddress({...address, lastName: v})} 
+                      placeholder="Achternaam" 
+                      half 
+                    />
                   </div>
                   <div className="flex flex-col md:flex-row gap-6">
-                    <InputField label="Straat & Huisnummer" value={address.street} onChange={(v: string) => setAddress({...address, street: v})} placeholder="Keizersgracht 123" />
+                    <InputField 
+                      label="Straat & Huisnummer" 
+                      value={address.street} 
+                      onChange={(v: string) => setAddress({...address, street: v})} 
+                      placeholder="Keizersgracht 123" 
+                    />
                   </div>
                   <div className="flex flex-col md:flex-row gap-6">
-                    <InputField label="Postcode" value={address.zipCode} onChange={(v: string) => setAddress({...address, zipCode: v})} placeholder="1234 AB" half />
-                    <InputField label="Stad" value={address.city} onChange={(v: string) => setAddress({...address, city: v})} placeholder="Amsterdam" half />
+                    <InputField 
+                      label="Postcode" 
+                      value={address.zipCode} 
+                      onChange={(v: string) => setAddress({...address, zipCode: v})} 
+                      placeholder="1234 AB" 
+                      half 
+                    />
+                    <InputField 
+                      label="Stad" 
+                      value={address.city} 
+                      onChange={(v: string) => setAddress({...address, city: v})} 
+                      placeholder="Amsterdam" 
+                      half 
+                    />
                   </div>
                 </section>
-
-                <button
-                  onClick={() => setStep('shipping')}
+                
+                <button 
+                  onClick={() => setStep('shipping')} 
                   className="w-full py-8 bg-slate-900 text-white font-black rounded-[40px] uppercase tracking-widest text-[13px] hover:bg-[#FF4F00] transition-all shadow-2xl shadow-slate-200"
                 >
                   Ga naar Verzending
                 </button>
               </div>
             )}
-
+            
             {step === 'shipping' && (
               <div className="space-y-16">
                 <section className="space-y-8">
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Verzendmethode</h2>
-
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Kies uw bezorger</label>
                     <div className="relative group">
-                      <select
-                        value={shippingMethod}
-                        onChange={(e) => setShippingMethod(e.target.value as any)}
+                      <select 
+                        value={shippingMethod} 
+                        onChange={(e) => setShippingMethod(e.target.value as any)} 
                         className="w-full bg-slate-50 border-none rounded-[32px] px-8 py-6 text-sm font-black uppercase tracking-widest outline-none appearance-none cursor-pointer focus:ring-4 focus:ring-orange-500/10 transition-all"
                       >
                         <option value="postnl">PostNL Verzekerd (€ 6,95)</option>
@@ -173,7 +206,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                       </div>
                     </div>
                   </div>
-
                   <div className="p-10 rounded-[48px] border-2 border-[#FF4F00] bg-orange-50/20 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <p className="font-black text-slate-900 uppercase tracking-widest text-base">{shippingLabels[shippingMethod]}</p>
@@ -186,30 +218,30 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                     </p>
                   </div>
                 </section>
-
-                <button
-                  onClick={() => setStep('payment')}
+                
+                <button 
+                  onClick={() => setStep('payment')} 
                   className="w-full py-8 bg-slate-900 text-white font-black rounded-[40px] uppercase tracking-widest text-[13px] hover:bg-[#FF4F00] transition-all shadow-2xl shadow-slate-200"
                 >
                   Ga naar Betaling
                 </button>
               </div>
             )}
-
+            
             {step === 'payment' && (
               <div className="space-y-16">
                 <section className="space-y-8">
                   <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Betalingswijze</h2>
                   <div className="space-y-4">
-                    <div
-                      onClick={() => setPaymentMethod('ideal')}
+                    <div 
+                      onClick={() => setPaymentMethod('ideal')} 
                       className={`p-8 rounded-[40px] border-2 cursor-pointer transition-all flex items-center gap-6 ${paymentMethod === 'ideal' ? 'border-[#FF4F00] bg-orange-50/20' : 'border-slate-50 hover:border-slate-200'}`}
                     >
                       <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-5" alt="iDEAL" />
                       <span className="font-black text-slate-900 uppercase tracking-widest text-sm">iDEAL</span>
                     </div>
-                    <div
-                      onClick={() => setPaymentMethod('card')}
+                    <div 
+                      onClick={() => setPaymentMethod('card')} 
                       className={`p-8 rounded-[40px] border-2 cursor-pointer transition-all flex items-center gap-6 ${paymentMethod === 'card' ? 'border-[#FF4F00] bg-orange-50/20' : 'border-slate-50 hover:border-slate-200'}`}
                     >
                       <div className="flex gap-2">
@@ -220,19 +252,16 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                     </div>
                   </div>
                 </section>
-
+                
                 <div className="space-y-8">
-                  <StripeCheckout
-                    amount={total}
-                    onSuccess={handlePaymentSuccess}
-                    onError={(err) => setError(err)}
-                  />
+                  <StripeCheckout amount={total} onSuccess={handlePaymentSuccess} onError={(err) => setError(err)} />
                 </div>
               </div>
             )}
           </div>
         </div>
-
+        
+        {/* Sidebar Order Summary */}
         <div className="w-full lg:w-[540px] bg-slate-50 p-8 lg:p-24 space-y-16">
           <div className="space-y-10">
             {items.map(item => (
@@ -253,7 +282,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
               </div>
             ))}
           </div>
-
+          
           <div className="space-y-6 pt-12 border-t border-slate-200">
             <div className="flex justify-between items-center text-sm">
               <span className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Subtotaal</span>
