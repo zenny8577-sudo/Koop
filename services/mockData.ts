@@ -1,4 +1,3 @@
-
 import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review } from '../types';
 import { ProductVerificationService } from './verificationService';
 
@@ -30,7 +29,7 @@ export const generateMockProducts = (count: number): Product[] => {
     const titlePool = category === 'Elektronica' ? electronicsTitles : designTitles;
     const title = `${titlePool[Math.floor(Math.random() * titlePool.length)]} #${i}`;
     const price = Math.floor(Math.random() * 2000) + 50;
-    
+
     const product: Product = {
       id: `p-${i}`,
       sellerId: i % 5 === 0 ? 'user_123' : `user_${i}`,

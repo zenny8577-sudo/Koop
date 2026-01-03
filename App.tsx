@@ -14,6 +14,7 @@ import BuyerDashboard from './components/Dashboard/BuyerDashboard';
 import SellRegistrationForm from './components/Auth/SellRegistrationForm';
 import SellInfoPage from './components/Store/SellInfoPage';
 import InfoPages from './components/Store/InfoPages';
+import ProductList from './components/Products/ProductList';
 import { SupabaseService } from './services/supabaseService';
 import { Product, User, UserRole, CartItem, Address, ProductStatus } from './types';
 import { AnalyticsService } from './services/analyticsService';
@@ -477,7 +478,7 @@ const App: React.FC = () => {
                 {/* Shop Header & Sort */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-slate-100">
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-slate-950 tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400">({productsData.total})</span></h2>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400">({productsData.total})</span></h2>
                     <div className="flex flex-wrap gap-2">
                       {filters.category !== 'All' && (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest border border-slate-100 animate-fadeIn">
