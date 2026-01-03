@@ -58,7 +58,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) =>
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Koper Dashboard</span>
           </div>
-          <h1 className="text-6xl lg:text-7xl font-black text-slate-950 tracking-tighter uppercase leading-[0.85]">
+          <h1 className="text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter uppercase leading-[0.85]">
             Mijn <br /> <span className="text-blue-600">Account.</span>
           </h1>
           <nav className="flex gap-10 pt-4">

@@ -179,7 +179,7 @@ const UserDashboard: React.FC = () => {
         <div className="space-y-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Netto Verdiensten', val: `€${stats.netEarnings.toLocaleString()}`, color: 'text-slate-950' },
+              { label: 'Netto Verdiensten', val: `€${stats.netEarnings.toLocaleString()}`, color: 'text-slate-900' },
               { label: 'Bruto Omzet', val: `€${stats.totalSales.toLocaleString()}`, color: 'text-slate-400' },
               { label: 'Live Listings', val: stats.activeCount, color: 'text-emerald-500' },
               { label: 'In Review', val: stats.pendingCount, color: stats.pendingCount > 0 ? 'text-[#FF4F00]' : 'text-slate-200' },
