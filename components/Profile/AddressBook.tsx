@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, UserAddress } from '../../types';
 import { supabase } from '../../src/integrations/supabase/client';
 
@@ -8,7 +8,11 @@ interface AddressBookProps {
 }
 
 const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [newAddress, setNewAddress] = useState<Omit<UserAddress, 'id' | 'isDefault'>>({
     label: '',
     firstName: user.firstName || '',
@@ -21,10 +25,50 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
     phone: user.phone || ''
   });
 
+  // Função auxiliar para mapear dados do Supabase (snake_case) para nossa interface (camelCase)
+  const mapAddressFromDB = (data: any): UserAddress => ({
+    id: data.id,
+    label: data.label,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    email: data.email,
+    street: data.street,
+    houseNumber: data.house_number,
+    city: data.city,
+    zipCode: data.zip_code,
+    phone: data.phone,
+    isDefault: data.is_default
+  });
+
+  // Carregar endereços ao montar
+  useEffect(() => {
+    fetchAddresses();
+  }, [user.id]);
+
+  const fetchAddresses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('is_default', { ascending: false }); // Padrão primeiro
+
+      if (error) throw error;
+
+      if (data) {
+        setAddresses(data.map(mapAddressFromDB));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar endereços:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
-      // Mapeamento correto para snake_case do banco de dados
       const addressPayload = {
         user_id: user.id,
         label: newAddress.label,
@@ -36,7 +80,7 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
         city: newAddress.city,
         zip_code: newAddress.zipCode,
         phone: newAddress.phone,
-        is_default: (user.addresses?.length || 0) === 0
+        is_default: addresses.length === 0 // Se for o primeiro, é padrão
       };
 
       const { data, error } = await supabase
@@ -45,25 +89,12 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
         .select()
         .single();
 
-      if (error) {
-        console.error("Supabase insert error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Update user with new address (mantendo camelCase no estado local)
-      const updatedUser = {
-        ...user,
-        addresses: [
-          ...(user.addresses || []), 
-          { 
-            ...newAddress, 
-            id: data.id, 
-            isDefault: addressPayload.is_default 
-          }
-        ]
-      };
-
-      onUpdate(updatedUser);
+      // Atualiza lista local
+      const addedAddress = mapAddressFromDB(data);
+      setAddresses([...addresses, addedAddress]);
+      
       setShowAddForm(false);
       setNewAddress({
         label: '',
@@ -80,7 +111,9 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
       alert('Adres succesvol toegevoegd!');
     } catch (error) {
       console.error('Failed to add address:', error);
-      alert('Er is iets misgegaan bij het toevoegen van je adres. Controleer de console voor details.');
+      alert('Er is iets misgegaan. Probeer het opnieuw.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -94,46 +127,41 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
 
         if (error) throw error;
 
-        const filtered = user.addresses?.filter(a => a.id !== id);
-        const updated = { ...user, addresses: filtered };
-        onUpdate(updated);
+        setAddresses(addresses.filter(a => a.id !== id));
       } catch (error) {
         console.error('Failed to remove address:', error);
-        alert('Er is iets misgegaan bij het verwijderen van je adres.');
+        alert('Er is iets misgegaan bij het verwijderen.');
       }
     }
   };
 
   const setAsDefault = async (id: string) => {
     try {
-      // Set all addresses to not default
-      const { error: updateError } = await supabase
+      // 1. Remove default de todos
+      await supabase
         .from('addresses')
         .update({ is_default: false })
         .eq('user_id', user.id);
 
-      if (updateError) throw updateError;
-
-      // Set selected address as default
-      const { error: setError } = await supabase
+      // 2. Define novo default
+      const { error } = await supabase
         .from('addresses')
         .update({ is_default: true })
         .eq('id', id);
 
-      if (setError) throw setError;
+      if (error) throw error;
 
-      const updatedAddresses = user.addresses?.map(addr => ({
-        ...addr,
-        isDefault: addr.id === id
-      }));
-
-      const updated = { ...user, addresses: updatedAddresses };
-      onUpdate(updated);
+      // Recarrega para garantir consistência
+      fetchAddresses();
     } catch (error) {
-      console.error('Failed to set default address:', error);
-      alert('Er is iets misgegaan bij het instellen van je standaardadres.');
+      console.error('Failed to set default:', error);
+      alert('Er is iets misgegaan.');
     }
   };
+
+  if (isLoading) {
+    return <div className="py-20 text-center text-slate-400">Laden...</div>;
+  }
 
   return (
     <div className="space-y-12 animate-fadeIn">
@@ -151,7 +179,7 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
       </header>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {(user.addresses || []).length === 0 ? (
+        {addresses.length === 0 ? (
           <div className="md:col-span-2 py-20 bg-slate-50 rounded-[40px] border border-dashed border-slate-200 text-center space-y-4">
             <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Geen adressen gevonden</p>
             <button 
@@ -162,7 +190,7 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
             </button>
           </div>
         ) : (
-          (user.addresses || []).map(addr => (
+          addresses.map(addr => (
             <div 
               key={addr.id} 
               className={`p-10 bg-white rounded-[40px] border transition-all duration-500 relative group overflow-hidden ${addr.isDefault ? 'border-[#FF4F00] shadow-2xl shadow-orange-500/5' : 'border-slate-100 hover:shadow-xl'}`}
@@ -211,7 +239,7 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
       
       {showAddForm && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xl" onClick={() => setShowAddForm(false)} />
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xl" onClick={() => !isSaving && setShowAddForm(false)} />
           <form onSubmit={handleAdd} className="relative bg-white w-full max-w-2xl p-12 lg:p-16 rounded-[60px] shadow-3xl overflow-y-auto max-h-[92vh]">
             <header className="flex justify-between items-start mb-12">
               <div className="space-y-4">
@@ -223,7 +251,7 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
               </div>
               <button 
                 type="button" 
-                onClick={() => setShowAddForm(false)} 
+                onClick={() => !isSaving && setShowAddForm(false)} 
                 className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-950 hover:text-white transition-all"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -311,10 +339,11 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
               
               <div className="md:col-span-2 pt-6">
                 <button 
-                  type="submit" 
-                  className="w-full py-8 bg-slate-950 text-white font-black rounded-full uppercase tracking-[0.3em] text-[11px] shadow-3xl hover:bg-[#FF4F00] transition-all transform hover:-translate-y-1"
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full py-8 bg-slate-950 text-white font-black rounded-full uppercase tracking-[0.3em] text-[11px] shadow-3xl hover:bg-[#FF4F00] transition-all transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Adres Opslaan
+                  {isSaving ? 'Bezig met opslaan...' : 'Adres Opslaan'}
                 </button>
               </div>
             </div>
