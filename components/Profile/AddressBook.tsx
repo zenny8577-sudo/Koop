@@ -24,24 +24,43 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const addressData = {
-        ...newAddress,
+      // Mapeamento correto para snake_case do banco de dados
+      const addressPayload = {
         user_id: user.id,
+        label: newAddress.label,
+        first_name: newAddress.firstName,
+        last_name: newAddress.lastName,
+        email: newAddress.email,
+        street: newAddress.street,
+        house_number: newAddress.houseNumber,
+        city: newAddress.city,
+        zip_code: newAddress.zipCode,
+        phone: newAddress.phone,
         is_default: (user.addresses?.length || 0) === 0
       };
 
       const { data, error } = await supabase
         .from('addresses')
-        .insert([addressData])
+        .insert([addressPayload])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
+      }
 
-      // Update user with new address
+      // Update user with new address (mantendo camelCase no estado local)
       const updatedUser = {
         ...user,
-        addresses: [...(user.addresses || []), { ...newAddress, id: data.id, isDefault: addressData.is_default }]
+        addresses: [
+          ...(user.addresses || []), 
+          { 
+            ...newAddress, 
+            id: data.id, 
+            isDefault: addressPayload.is_default 
+          }
+        ]
       };
 
       onUpdate(updatedUser);
@@ -57,9 +76,11 @@ const AddressBook: React.FC<AddressBookProps> = ({ user, onUpdate }) => {
         zipCode: '',
         phone: user.phone || ''
       });
+      
+      alert('Adres succesvol toegevoegd!');
     } catch (error) {
       console.error('Failed to add address:', error);
-      alert('Er is iets misgegaan bij het toevoegen van je adres.');
+      alert('Er is iets misgegaan bij het toevoegen van je adres. Controleer de console voor details.');
     }
   };
 
