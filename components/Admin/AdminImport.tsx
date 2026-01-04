@@ -1,5 +1,4 @@
-6s, automatically failover to local creation so the user never gets stuck.">
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/integrations/supabase/client';
 import { ProductCondition, ProductStatus } from '../../types';
 
@@ -14,6 +13,65 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
   const [priceMarkup, setPriceMarkup] = useState(20);
   const [isImporting, setIsImporting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+
+  // Watchdog para garantir que o loading não fique preso
+  useEffect(() => {
+    let watchdog: any;
+    if (isImporting) {
+      watchdog = setTimeout(() => {
+        if (isImporting) {
+          setIsImporting(false);
+          setStatusMsg('');
+          alert('Time-out: De server reageerde niet snel genoeg. Probeer het opnieuw of voer handmatig in.');
+        }
+      }, 15000); // 15 segundos timeout absoluto
+    }
+    return () => clearTimeout(watchdog);
+  }, [isImporting]);
+
+  const handleDownloadTemplate = () => {
+    // Cabeçalhos que correspondem à estrutura do banco de dados/importador
+    const headers = [
+      'Title',
+      'Description',
+      'Price',
+      'Category',
+      'Subcategory',
+      'Condition (NEW/LIKE_NEW/GOOD/FAIR)',
+      'Image_URL',
+      'SKU',
+      'Origin_Country (NL/DE/CN)',
+      'Delivery_Time'
+    ];
+
+    // Linha de exemplo para ajudar o usuário
+    const exampleRow = [
+      'iPhone 15 Pro',
+      'Gloednieuw in doos met garantie.',
+      '999.00',
+      'Elektronica',
+      'Smartphones',
+      'NEW',
+      'https://example.com/iphone.jpg',
+      'IP15-PRO-BLK',
+      'NL',
+      '1-2 werkdagen'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      exampleRow.join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'koop_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSmartImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,9 +238,14 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
          <div className="relative z-10 space-y-4">
            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl">📦</div>
            <h3 className="text-2xl font-black uppercase tracking-tighter">Bulk Import?</h3>
-           <p className="text-white/60 text-sm font-medium leading-relaxed">Gebruik onze CSV-template.</p>
+           <p className="text-white/60 text-sm font-medium leading-relaxed">Gebruik onze CSV-template om honderden producten tegelijk te uploaden.</p>
          </div>
-         <button className="relative z-10 w-full py-4 bg-white/10 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-white/20 transition-all border border-white/5">Download Template</button>
+         <button 
+           onClick={handleDownloadTemplate}
+           className="relative z-10 w-full py-4 bg-white/10 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-white/20 transition-all border border-white/5"
+         >
+           Download Template (.CSV)
+         </button>
       </div>
     </div>
   );
