@@ -24,11 +24,12 @@ const HomeView: React.FC<HomeViewProps> = ({
   const recentProducts = products.slice(10, 14);
 
   React.useEffect(() => {
+    console.log('HomeView user state:', user);
     const interval = setInterval(() => {
       setActiveSpotlight(prev => (prev + 1) % 3);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const categoryImages: Record<string, string> = {
     'Elektronica': 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1200',

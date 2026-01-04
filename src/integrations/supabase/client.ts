@@ -12,4 +12,6 @@ if (!supabaseAnonKey) {
   throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable')
 }
 
+console.log('Supabase client initialized with URL:', supabaseUrl ? '✅' : '❌');
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)

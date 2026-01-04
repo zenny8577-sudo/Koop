@@ -86,13 +86,17 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
   if (showSuccess) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-center space-y-8 animate-fadeIn px-6">
-        <div className="w-32 h-32 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-xl">
+        <div className="w-32 h-32 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-xl mb-14">
           <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-6xl font-black text-slate-900 tracking-tighter uppercase">Bedankt!</h2>
-        <p className="text-slate-500 max-w-sm mx-auto font-medium text-lg uppercase tracking-widest">Aankoop Voltooid.</p>
+        <h2 className="text-6xl font-black text-slate-900 tracking-tighter uppercase mb-8">Bedankt!</h2>
+        <p className="text-slate-500 max-w-sm mx-auto font-medium text-lg mb-16 uppercase tracking-widest">Aankoop Voltooid.</p>
+        <div className="flex gap-4">
+          <button onClick={() => onBack()} className="px-16 py-8 bg-white border-2 border-slate-950 text-slate-950 font-black rounded-full uppercase tracking-widest text-[12px] hover:bg-slate-950 hover:text-white transition-all">Terug naar Home</button>
+          <button onClick={() => onBack()} className="px-16 py-8 bg-slate-950 text-white font-black rounded-full uppercase tracking-widest text-[12px] hover:bg-[#FF4F00] transition-all shadow-2xl">Bekijk Bestelling</button>
+        </div>
       </div>
     );
   }

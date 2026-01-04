@@ -33,6 +33,10 @@ const ShopView: React.FC<ShopViewProps> = ({
     'Gadgets': 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?auto=format&fit=crop&q=80&w=1200'
   };
 
+  React.useEffect(() => {
+    console.log('ShopView mounted with filters:', filters, 'user:', user?.id);
+  }, [filters, user]);
+
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-24 animate-fadeIn flex flex-col lg:flex-row gap-20">
       <aside className="w-full lg:w-96 shrink-0 space-y-16">

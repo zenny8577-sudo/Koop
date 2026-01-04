@@ -44,18 +44,32 @@ const App: React.FC = () => {
   }, [view]);
 
   useEffect(() => {
-    // Redirect to appropriate dashboard after login
+    // Enhanced redirect logic with proper dashboard routing
     if (user) {
       setIsLoginOpen(false);
+      
+      // Determine the appropriate dashboard based on role
+      let targetView: ViewState = 'home';
+      
       if (user.role === UserRole.ADMIN) {
-        setView('admin');
+        targetView = 'admin';
+        console.log('Admin user detected, redirecting to admin dashboard');
       } else if (user.role === UserRole.SELLER) {
-        setView('seller-dashboard');
+        targetView = 'seller-dashboard';
+        console.log('Seller user detected, redirecting to seller dashboard');
       } else if (user.role === UserRole.BUYER) {
-        setView('buyer-dashboard');
+        targetView = 'buyer-dashboard';
+        console.log('Buyer user detected, redirecting to buyer dashboard');
+      }
+      
+      // Only redirect if we're not already on a protected route
+      const protectedRoutes = ['admin', 'seller-dashboard', 'buyer-dashboard', 'checkout'];
+      if (!protectedRoutes.includes(view)) {
+        setView(targetView);
+        console.log(`Redirected from ${view} to ${targetView}`);
       }
     }
-  }, [user]);
+  }, [user, view]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);

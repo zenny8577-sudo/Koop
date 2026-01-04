@@ -13,6 +13,12 @@ interface CartDrawerProps {
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onUpdateQuantity, onRemove, onCheckout }) => {
   const subtotal = items.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      console.log('Cart drawer opened with items:', items.length);
+    }
+  }, [isOpen, items]);
+
   return (
     <>
       <div 
@@ -53,7 +59,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onUpdat
                     <img src={item.product.image} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-black text-slate-900 truncate uppercase tracking-tight">{item.product.title}</h3>
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">{item.product.title}</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{item.product.category}</p>
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center border border-slate-100 rounded-full overflow-hidden">

@@ -18,6 +18,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
   const [comment, setComment] = useState('');
 
   useEffect(() => {
+    console.log('BuyerDashboard mounted for user:', user);
     loadTransactions();
   }, [user.id]);
 
@@ -30,6 +31,7 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
 
       if (error) throw error;
       setTransactions(data || []);
+      console.log('Buyer transactions loaded:', data?.length);
     } catch (error) {
       console.error('Failed to load transactions:', error);
     }

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ICONS } from '../constants';
 import { UserRole } from '../types';
@@ -23,7 +22,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
         </div>
 
         <nav className="space-y-3 flex-1">
-          {/* Admin Navigation */}
+          {/* Admin Navigation - Only visible to ADMIN */}
           {userRole === UserRole.ADMIN && (
             <button
               onClick={() => setActiveTab('admin')}
@@ -34,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             </button>
           )}
 
-          {/* Seller Navigation */}
+          {/* Seller Navigation - Only visible to SELLER */}
           {userRole === UserRole.SELLER && (
             <>
               <button
@@ -54,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
             </>
           )}
 
-          {/* Buyer Navigation */}
+          {/* Buyer Navigation - Only visible to BUYER */}
           {userRole === UserRole.BUYER && (
             <button
               onClick={() => setActiveTab('buyer-dashboard')}

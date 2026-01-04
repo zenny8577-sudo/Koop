@@ -5,6 +5,10 @@ interface SuccessViewProps {
 }
 
 const SuccessView: React.FC<SuccessViewProps> = ({ onNavigate }) => {
+  React.useEffect(() => {
+    console.log('SuccessView mounted - checkout completed');
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center p-6 animate-fadeIn">
       <div className="w-32 h-32 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center shadow-xl mb-14">

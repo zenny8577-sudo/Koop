@@ -12,10 +12,15 @@ const SellInfoPage: React.FC<SellInfoPageProps> = ({ onStartRegistration }) => {
     { title: 'Uitbetaling', desc: 'Ontvang je geld direct na levering via Stripe Connect.' },
   ];
 
+  const handleStart = () => {
+    console.log('Starting seller registration flow');
+    onStartRegistration();
+  };
+
   return (
     <div className="animate-fadeIn">
       {/* Hero */}
-      <section className="bg-slate-900 py-32 lg:py-48 px-6 rounded-[60px] lg:rounded-[100px] mx-4 lg:mx-10 mt-6 relative overflow-hidden">
+      <section className="bg-slate-900 py-32 lg:py-48 px-6 lg:px-10 rounded-[60px] lg:rounded-[100px] mx-4 lg:mx-10 mt-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000" className="w-full h-full object-cover" />
         </div>
@@ -27,7 +32,7 @@ const SellInfoPage: React.FC<SellInfoPageProps> = ({ onStartRegistration }) => {
             Verkoop je premium elektronica, design e fietsen op het meest vertrouwde platform van Nederland.
           </p>
           <button
-            onClick={onStartRegistration}
+            onClick={handleStart}
             className="px-16 py-7 bg-[#FF4F00] text-white font-black text-xs uppercase tracking-widest rounded-full hover:bg-white hover:text-slate-900 transition-all transform hover:scale-105 shadow-2xl shadow-orange-500/20"
           >
             Nu Beginnen
@@ -78,7 +83,7 @@ const SellInfoPage: React.FC<SellInfoPageProps> = ({ onStartRegistration }) => {
       <section className="max-w-[1440px] mx-auto px-6 pb-40 text-center space-y-12">
         <h2 className="text-6xl font-black text-slate-900 tracking-tighter uppercase">Klaar om te verkopen?</h2>
         <button
-          onClick={onStartRegistration}
+          onClick={handleStart}
           className="px-20 py-8 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-full hover:bg-[#FF4F00] transition-all"
         >
           Maak een Verkoper-account aan

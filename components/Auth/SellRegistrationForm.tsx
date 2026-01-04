@@ -41,6 +41,7 @@ const SellRegistrationForm: React.FC<SellRegistrationFormProps> = ({ onSuccess }
     }
 
     setIsLoading(true);
+    console.log('Seller registration submitted:', formData);
     // Simulação de envio para o CRM
     setTimeout(() => {
       setIsLoading(false);

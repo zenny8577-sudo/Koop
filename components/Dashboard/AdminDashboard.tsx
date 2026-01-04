@@ -12,6 +12,7 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('AdminDashboard mounted - Admin user should see this');
     loadData();
     AnalyticsService.trackEvent('admin_dashboard_view');
   }, []);
@@ -44,6 +45,12 @@ const AdminDashboard: React.FC = () => {
         activeListings: productsData.filter((p: any) => p.status === ProductStatus.ACTIVE).length,
         pendingApprovals: productsData.filter((p: any) => p.status === ProductStatus.PENDING_APPROVAL).length,
         newUsers: usersList.filter((u: any) => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
+      });
+      
+      console.log('AdminDashboard data loaded:', { 
+        products: productsData.length, 
+        users: usersList.length,
+        stats 
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');

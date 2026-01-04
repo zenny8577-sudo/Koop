@@ -17,6 +17,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   
   const { signIn, signUp, loading, error: authError } = useAuth();
 
@@ -53,18 +54,26 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         // We just need to close the modal
         onClose();
       } else {
-        await signUp(email, password, role, firstName, lastName);
-        setShowSuccess(true);
-        setTimeout(() => {
-          onClose();
-          setShowSuccess(false);
-          setActiveTab('login');
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
-          setFirstName('');
-          setLastName('');
-        }, 2000);
+        const result = await signUp(email, password, role, firstName, lastName);
+        
+        // Check if email confirmation is required
+        if (result?.user?.aud === 'authenticated') {
+          // User is already authenticated (admin bypass)
+          setShowSuccess(true);
+          setTimeout(() => {
+            onClose();
+            setShowSuccess(false);
+            setActiveTab('login');
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+            setFirstName('');
+            setLastName('');
+          }, 2000);
+        } else {
+          // Email confirmation required
+          setShowEmailConfirmation(true);
+        }
         return;
       }
       
@@ -87,7 +96,35 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     setConfirmPassword('');
     setFirstName('');
     setLastName('');
+    setShowEmailConfirmation(false);
+    setShowSuccess(false);
   };
+
+  if (showEmailConfirmation) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 animate-fadeIn">
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={onClose} />
+        <div className="relative bg-white w-full max-w-lg p-14 rounded-[50px] shadow-2xl text-center space-y-6 border border-slate-100">
+          <div className="w-20 h-20 bg-orange-50 text-[#FF4F00] rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Bevestig Je Email</h3>
+          <p className="text-slate-500 font-medium">We hebben een bevestigingsmail gestuurd naar {email}. Controleer je inbox en spam folder.</p>
+          <button 
+            onClick={() => {
+              setShowEmailConfirmation(false);
+              setActiveTab('login');
+            }}
+            className="w-full py-4 bg-slate-950 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-[#FF4F00] transition-all"
+          >
+            Naar Inloggen
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (showSuccess) {
     return (
@@ -233,6 +270,14 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             {loading ? 'Verwerken...' : activeTab === 'login' ? 'Doorgaan' : 'Account Aanmaken'}
           </button>
         </form>
+
+        {/* Admin Login Hint */}
+        {activeTab === 'login' && (
+          <div className="pt-6 border-t border-slate-100 text-center">
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Admin Demo</p>
+            <p className="text-[8px] text-slate-300">Email: brenodiogo27@icloud.com<br />Pass: 19011995Breno@#</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -30,6 +30,8 @@ const TestAuth: React.FC = () => {
             <p><strong>Email:</strong> {user.email}</p>
             <p><strong>Role:</strong> {user.role}</p>
             <p><strong>Verification Status:</strong> {user.verificationStatus}</p>
+            <p><strong>First Name:</strong> {user.firstName || 'N/A'}</p>
+            <p><strong>Last Name:</strong> {user.lastName || 'N/A'}</p>
           </div>
           <button 
             onClick={() => signOut()}

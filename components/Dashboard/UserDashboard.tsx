@@ -24,6 +24,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
   });
 
   useEffect(() => {
+    console.log('UserDashboard mounted for user:', user);
     loadUserProducts();
     AnalyticsService.trackEvent('seller_dashboard_view');
   }, [user.id]);
@@ -39,6 +40,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
 
       if (error) throw error;
       setProducts(data || []);
+      console.log('Seller products loaded:', data?.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
       console.error('Products load error:', err);
