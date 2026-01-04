@@ -12,7 +12,6 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
   const [importUrl, setImportUrl] = useState('');
   const [priceMarkup, setPriceMarkup] = useState(20);
   const [isImporting, setIsImporting] = useState(false);
-  const [csvContent, setCsvContent] = useState('');
 
   const handleSmartImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +26,11 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || 'admin_local';
+      const userId = user?.id;
+      
+      if (!userId) throw new Error("Je bent niet ingelogd.");
 
+      // Chama a Edge Function
       const { data: aiProduct, error: fnError } = await supabase.functions.invoke('clone-product', {
         body: { 
           url: importUrl,
@@ -39,45 +41,44 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
       if (fnError) throw new Error(fnError.message || 'Import Verbinding Mislukt');
       if (!aiProduct || aiProduct.error) throw new Error(aiProduct?.error || 'Geen data ontvangen.');
 
-      const basePrice = aiProduct.price || 50;
+      const basePrice = typeof aiProduct.price === 'number' ? aiProduct.price : parseFloat(aiProduct.price) || 50;
       const finalPrice = basePrice * (1 + (priceMarkup / 100));
 
-      const newProduct = {
+      // PREPARA O OBJETO PARA O BANCO (SNAKE CASE)
+      const newProductPayload = {
         title: aiProduct.title || "Geïmporteerd Item",
         description: aiProduct.description || `Geïmporteerd van: ${importUrl}`,
         price: parseFloat(finalPrice.toFixed(2)),
         category: aiProduct.category || 'Overig',
         condition: ProductCondition.NEW,
         image: aiProduct.image,
-        gallery: aiProduct.gallery || [aiProduct.image], // Salva a galeria
+        gallery: aiProduct.gallery || [aiProduct.image],
         seller_id: userId,
         status: ProductStatus.ACTIVE,
-        sku: `DROP-${Date.now()}`,
-        created_at: new Date().toISOString(),
+        sku: `IMP-${Date.now()}`,
+        
+        // Campos do Banco (Snake Case)
         commission_rate: 0.15,
         commission_amount: parseFloat(finalPrice.toFixed(2)) * 0.15,
         shipping_methods: ['postnl'],
-        origin_country: 'CN', // Padrão para dropshipping, editável depois
-        estimated_delivery: '7-14 dagen'
+        origin_country: 'CN', 
+        estimated_delivery: '7-14 dagen',
+        is_3d_model: false,
+        created_at: new Date().toISOString()
       };
 
-      const { error } = await supabase.from('products').insert([newProduct]);
+      const { error } = await supabase.from('products').insert([newProductPayload]);
       if (error) throw error;
 
       onImportSuccess();
       setImportUrl('');
-      alert(`Product geïmporteerd!`);
+      alert(`Product succesvol geïmporteerd!`);
     } catch (err) {
       console.error(err);
       alert('Import Mislukt: ' + (err as Error).message);
     } finally {
       setIsImporting(false);
     }
-  };
-
-  // ... keep existing CSV logic ...
-  const handleCSVImport = async () => {
-    // ... same as before
   };
 
   return (
@@ -130,7 +131,6 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
         </form>
       </div>
       
-      {/* Keeping empty CSV div for structure */}
       <div className="bg-slate-900 p-10 rounded-[40px] shadow-xl text-white space-y-6">
          <h3 className="text-xl font-black uppercase">CSV Import</h3>
          <p className="text-xs opacity-60">Binnenkort beschikbaar</p>
