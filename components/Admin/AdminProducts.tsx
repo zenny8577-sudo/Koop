@@ -21,10 +21,15 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   };
 
   const mapFormToDb = (formData: any, userId: string) => {
+    // Garante que o preço seja numérico
+    const price = typeof formData.price === 'string' 
+      ? parseFloat(formData.price.replace(',', '.')) 
+      : formData.price;
+
     return {
       title: formData.title,
       description: formData.description,
-      price: parseFloat(formData.price),
+      price: price,
       category: formData.category,
       subcategory: formData.subcategory || null,
       condition: formData.condition,
@@ -36,7 +41,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       // Campos Críticos
       seller_id: userId, 
       commission_rate: 0.15,
-      commission_amount: (parseFloat(formData.price) * 0.15),
+      commission_amount: (price * 0.15),
       shipping_methods: ['postnl', 'dhl'],
       origin_country: formData.originCountry || 'NL',
       estimated_delivery: formData.estimatedDelivery || '1-3 werkdagen',
@@ -52,6 +57,10 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       if (!user) throw new Error("Sessie verlopen. Log opnieuw in.");
 
       const productPayload = mapFormToDb(formData, user.id);
+      
+      // Validação final de segurança
+      if (isNaN(productPayload.price)) throw new Error("Prijs is ongeldig.");
+
       let error;
 
       if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
@@ -80,12 +89,13 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
 
     } catch (err) {
       console.error("Save Error:", err);
-      if ((err as any).message?.includes('invalid input syntax for type uuid')) {
-         alert('Systeemfout: Probeer het product opnieuw aan te maken in plaats van te bewerken.');
-      } else {
-         alert('Fout bij opslaan: ' + (err as Error).message);
+      let msg = (err as Error).message;
+      if (msg?.includes('invalid input syntax for type uuid')) {
+         msg = 'Systeemfout: Probeer het product opnieuw aan te maken.';
       }
+      alert('Fout bij opslaan: ' + msg);
     } finally {
+      // Garante que o loading para, independente de sucesso ou erro
       setActionLoading(false);
     }
   };
@@ -133,7 +143,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
     const productToMigrate = products.find(p => p.id === productId);
     if (!productToMigrate) return;
 
-    // Feedback visual rápido
     if (!confirm(`Dit demo-item opslaan in de database als ${newStatus}?`)) return;
 
     try {
@@ -152,9 +161,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
         image: productToMigrate.image,
         gallery: productToMigrate.gallery || [],
         sku: productToMigrate.sku,
-        status: newStatus, // AQUI aplicamos o status do botão (ACTIVE ou REJECTED)
+        status: newStatus,
         
-        seller_id: user.id, // Assume o admin atual como dono na migração
+        seller_id: user.id,
         commission_rate: 0.15,
         commission_amount: (productToMigrate.price * 0.15),
         shipping_methods: ['postnl'],
@@ -168,7 +177,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       if (error) throw error;
 
       onRefresh();
-      // Não precisa de alert de sucesso, a atualização da tabela é o feedback
 
     } catch (e) {
       alert('Fout bij migreren: ' + (e as Error).message);
@@ -227,7 +235,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-4 text-center font-bold">€{p.price}</td>
+                  <td className="px-8 py-4 text-center font-bold">€{p.price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</td>
                   <td className="px-8 py-4 text-center">
                     <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest ${p.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : p.status === 'PENDING_APPROVAL' ? 'bg-orange-50 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
                       {p.status?.replace('_', ' ') || 'UNKNOWN'}

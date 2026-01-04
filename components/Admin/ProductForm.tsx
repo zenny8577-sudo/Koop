@@ -19,21 +19,18 @@ const CATEGORY_MAP: Record<string, string[]> = {
 };
 
 const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCancel, isLoading }) => {
-  // Inicialização robusta do estado, mapeando campos snake_case do DB para camelCase do form
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     description: initialData?.description || '',
-    price: initialData?.price || '',
+    price: initialData?.price ? initialData.price.toString() : '',
     category: initialData?.category || 'Elektronica',
     subcategory: initialData?.subcategory || '',
     condition: initialData?.condition || ProductCondition.NEW,
     image: initialData?.image || '',
     gallery: initialData?.gallery || [],
     sku: initialData?.sku || '',
-    // Mapeamento crítico para edição funcionar
     originCountry: initialData?.originCountry || initialData?.origin_country || 'NL',
     estimatedDelivery: initialData?.estimatedDelivery || initialData?.estimated_delivery || '1-3 werkdagen',
-    // Preserva outros campos
     ...initialData
   });
   
@@ -42,9 +39,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
 
   useEffect(() => {
-    // Auto-select subcategory if needed
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
-      // Don't overwrite if it's already set correctly (e.g. from initialData) unless it's invalid for the category
       const validSubs = CATEGORY_MAP[formData.category] || [];
       if (validSubs.length > 0 && !validSubs.includes(formData.subcategory)) {
          setFormData(prev => ({ ...prev, subcategory: validSubs[0] }));
@@ -62,11 +57,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        // Sanitize filename to avoid issues
         const fileExt = file.name.split('.').pop();
         const safeName = file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}_${safeName}.${fileExt}`;
-        const filePath = `${fileName}`; // Upload to root of bucket or folder
+        const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('products')
@@ -105,32 +99,49 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isUploading) return; // Prevent submit while uploading
+    if (isUploading || isLoading) return;
 
-    await onSubmit({
-      ...formData,
-      // Ensure numeric/clean values
-      price: parseFloat(formData.price.toString()),
-      sku: formData.sku || `SKU-${Date.now()}`,
-      status: ProductStatus.ACTIVE,
-      // Ensure these specific fields are passed correctly
-      image: formData.image,
-      gallery: formData.gallery,
-      originCountry: formData.originCountry,
-      estimatedDelivery: formData.estimatedDelivery
-    });
+    try {
+      // Robust price parsing: replace comma with dot, remove currency symbols/spaces
+      let rawPrice = formData.price.toString().replace(',', '.').replace(/[^0-9.]/g, '');
+      const parsedPrice = parseFloat(rawPrice);
 
-    if (keepOpen) {
-      setFormData(prev => ({
-        ...prev,
-        title: '',
-        description: '',
-        price: '',
-        image: '',
-        gallery: [],
-        sku: ''
-      }));
-      window.scrollTo(0, 0);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        alert("Voer een geldige prijs in.");
+        return;
+      }
+
+      if (!formData.title || !formData.image) {
+        alert("Titel en afbeelding zijn verplicht.");
+        return;
+      }
+
+      await onSubmit({
+        ...formData,
+        price: parsedPrice,
+        sku: formData.sku || `SKU-${Date.now()}`,
+        status: ProductStatus.ACTIVE,
+        image: formData.image,
+        gallery: formData.gallery || [],
+        originCountry: formData.originCountry,
+        estimatedDelivery: formData.estimatedDelivery
+      });
+
+      if (keepOpen) {
+        setFormData(prev => ({
+          ...prev,
+          title: '',
+          description: '',
+          price: '',
+          image: '',
+          gallery: [],
+          sku: ''
+        }));
+        window.scrollTo(0, 0);
+      }
+    } catch (error) {
+      console.error("Form submit error:", error);
+      alert("Er ging iets mis bij het voorbereiden van de gegevens.");
     }
   };
 
@@ -184,7 +195,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         </div>
       </div>
 
-      {/* Logística */}
+      {/* Logistiek */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Logistiek</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -217,8 +228,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Prijs (€)</label>
             <input 
-              type="number"
+              type="text"
               required
+              placeholder="0.00"
               value={formData.price}
               onChange={e => setFormData({...formData, price: e.target.value})}
               className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
@@ -298,7 +310,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
            </div>
            
            <div className="flex flex-col gap-4">
-              {/* Gallery URL Input */}
               <div className="flex gap-2">
                   <input 
                       placeholder="Galerij afbeeldings-URL toevoegen..." 
