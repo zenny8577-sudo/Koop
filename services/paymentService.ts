@@ -1,23 +1,39 @@
 import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '../src/integrations/supabase/client';
 
-// A chave deve estar no arquivo .env como VITE_STRIPE_PUBLIC_KEY
+// A chave pública (pk_live_...) deve estar no .env
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 
 export class PaymentService {
   static async createPaymentIntent(amount: number, currency: string = 'EUR') {
-    if (!stripePublicKey) {
-      console.warn('Stripe Public Key não encontrada. Usando modo de simulação.');
-      // Simulação para não travar o app se a chave não estiver configurada
-      return {
-        clientSecret: `pi_mock_${Date.now()}_secret_${Math.random().toString(36).substring(7)}`
-      };
-    }
+    try {
+      // Chama a Edge Function segura
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { 
+          amount: amount, // A função já espera o valor (se for em centavos ou euros, ajuste lá. Aqui envio como recebido, a função arredonda)
+          currency 
+        }
+      });
 
-    // Em produção, isso chamaria seu backend (Supabase Edge Function)
-    // Para testar o fluxo visual, retornamos um mock se não houver backend conectado
-    return {
-      clientSecret: `pi_mock_${Date.now()}_secret_${Math.random().toString(36).substring(7)}`
-    };
+      if (error) throw error;
+      if (!data.clientSecret) throw new Error('No client secret returned');
+
+      return {
+        clientSecret: data.clientSecret
+      };
+    } catch (error) {
+      console.error('Payment Error:', error);
+      
+      // Fallback apenas para desenvolvimento se não houver backend
+      if (!stripePublicKey) {
+        console.warn('Usando Mock Payment (Chaves não configuradas)');
+        return {
+          clientSecret: `pi_mock_${Date.now()}_secret_${Math.random().toString(36).substring(7)}`
+        };
+      }
+      
+      throw error;
+    }
   }
 
   static async getStripe() {
