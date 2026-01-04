@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/integrations/supabase/client';
-import { Product, User, ProductStatus } from '../../types';
-import { mockProducts } from '../../services/mockData';
+import { Product, User, Transaction, ProductStatus } from '../../types';
+import { mockProducts, mockTransactions } from '../../services/mockData';
 
 // Imported modular components
 import AdminOverview from '../Admin/AdminOverview';
@@ -16,6 +16,7 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'categories' | 'import' | 'users' | 'sellers' | 'settings'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Settings State
@@ -31,20 +32,48 @@ const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Carregar dados reais do Supabase
       const { data: productsData } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       const { data: usersData } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      const { data: txData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
       
-      // Fallback to mocks if DB is empty
+      // Lógica Híbrida: Se tiver poucos dados no banco, completa com Mock Data para visualização
       let allProducts = productsData || [];
-      if (allProducts.length === 0) {
-          allProducts = [...mockProducts];
+      if (allProducts.length < 5) {
+          // Filtra mocks para não duplicar IDs se já existirem
+          const existingIds = new Set(allProducts.map(p => p.id));
+          const mocksToAdd = mockProducts.filter(m => !existingIds.has(m.id));
+          allProducts = [...allProducts, ...mocksToAdd];
       }
       
+      let allTransactions = txData || [];
+      if (allTransactions.length === 0) {
+          allTransactions = [...mockTransactions];
+          // Se não houver mocks de transação exportados, gera alguns fictícios para o gráfico
+          if (allTransactions.length === 0) {
+             const now = new Date();
+             for(let i=0; i<10; i++) {
+                allTransactions.push({
+                   id: `mock-tx-${i}`,
+                   productId: `p-${i}`,
+                   userId: `u-${i}`,
+                   amount: Math.floor(Math.random() * 500) + 50,
+                   status: i % 3 === 0 ? 'pending' : 'completed',
+                   createdAt: new Date(now.setDate(now.getDate() - i)).toISOString()
+                } as any);
+             }
+          }
+      }
+
       setProducts(allProducts);
-      setUsers(usersData || []);
+      setUsers(usersData || []); // Usuários geralmente vêm do Auth/DB real, mas se vazio a lista fica vazia
+      setTransactions(allTransactions);
+
     } catch (err) {
       console.error('Admin load error:', err);
+      // Fallback total em caso de erro de conexão
       setProducts(mockProducts);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -84,7 +113,7 @@ const AdminDashboard: React.FC = () => {
       </header>
 
       {/* Render Active Tab */}
-      {activeTab === 'overview' && <AdminOverview products={products} users={users} />}
+      {activeTab === 'overview' && <AdminOverview products={products} users={users} transactions={transactions} />}
       {activeTab === 'products' && <AdminProducts products={products} loading={loading} onRefresh={loadData} />}
       {activeTab === 'categories' && <AdminCategories />}
       {activeTab === 'import' && <AdminImport apiKeys={apiKeys} onImportSuccess={loadData} onRequestSettings={() => setActiveTab('settings')} />}
