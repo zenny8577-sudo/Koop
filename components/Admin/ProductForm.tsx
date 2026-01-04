@@ -98,9 +98,34 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     e.preventDefault();
     if (isUploading || isLoading) return;
 
-    await onSubmit(formData);
+    try {
+      let rawPrice = formData.price.toString().replace(',', '.').replace(/[^0-9.]/g, '');
+      const parsedPrice = parseFloat(rawPrice);
 
-    if (keepOpen) {
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        alert("Voer een geldige prijs in.");
+        return;
+      }
+
+      if (!formData.title) {
+        alert("Titel is verplicht.");
+        return;
+      }
+
+      const finalImage = formData.image || 'https://via.placeholder.com/800?text=No+Image';
+
+      await onSubmit({
+        ...formData,
+        price: parsedPrice,
+        sku: formData.sku || `SKU-${Date.now()}`,
+        status: ProductStatus.ACTIVE,
+        image: finalImage,
+        gallery: formData.gallery || [],
+        originCountry: formData.originCountry,
+        estimatedDelivery: formData.estimatedDelivery
+      });
+
+      if (keepOpen) {
         setFormData(prev => ({
           ...prev,
           title: '',
@@ -111,6 +136,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
           sku: ''
         }));
         window.scrollTo(0, 0);
+      }
+    } catch (error) {
+      console.error("Form submit error:", error);
+      alert("Er ging iets mis bij het voorbereiden van de gegevens: " + (error as Error).message);
     }
   };
 
@@ -230,7 +259,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Media</h3>
         
         <div className="space-y-4">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding (Cover)</label>
           <div className="flex gap-4 items-center">
               <div className="flex-1 relative group">
                   <input 
@@ -241,7 +270,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
                   <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20`}>
-                      {isUploading ? 'Bezig met uploaden...' : formData.image ? 'Klik om te wijzigen' : 'Klik om te uploaden'}
+                      {isUploading ? 'Bezig met uploaden...' : formData.image ? 'Klik om cover te wijzigen' : 'Upload Coverfoto'}
                   </div>
               </div>
               {formData.image && (
@@ -258,10 +287,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
            <div className="flex justify-between items-center">
-             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0})</label>
+             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0} extra foto's)</label>
            </div>
            
            <div className="flex flex-col gap-4">
+              <div className="flex gap-2">
+                  <input 
+                      placeholder="Galerij URL toevoegen..." 
+                      value={galleryUrlInput}
+                      onChange={e => setGalleryUrlInput(e.target.value)}
+                      className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddGalleryUrl())}
+                  />
+                  <button 
+                      type="button"
+                      onClick={handleAddGalleryUrl}
+                      className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
+                  >
+                      +
+                  </button>
+              </div>
+
               <div className="relative">
                   <input 
                       type="file"
@@ -271,8 +317,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                       onChange={(e) => handleImageUpload(e, true)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
-                  <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-3 text-xs font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all`}>
-                      {isUploading ? 'Bezig...' : 'Upload meerdere afbeeldingen'}
+                  <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2`}>
+                      <span className="text-2xl mr-2">📸</span>
+                      {isUploading ? 'Uploaden...' : 'Klik hier om MEERDERE foto\'s te selecteren'}
                   </div>
               </div>
            </div>
