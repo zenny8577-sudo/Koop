@@ -8,11 +8,16 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   // Helper para converter snake_case do banco para camelCase da interface User
+  // E normalizar a ROLE para garantir redirecionamento correto
   const mapProfileToUser = (profile: any): User => {
+    // Normaliza role para UpperCase para bater com o Enum (ADMIN, SELLER, BUYER)
+    const rawRole = profile.role || 'BUYER';
+    const normalizedRole = rawRole.toUpperCase() as UserRole;
+
     return {
       id: profile.id,
       email: profile.email,
-      role: profile.role as UserRole,
+      role: normalizedRole,
       firstName: profile.first_name,
       lastName: profile.last_name,
       phone: profile.phone,
@@ -21,7 +26,6 @@ export function useAuth() {
       stripeAccountId: profile.stripe_account_id,
       created_at: profile.created_at,
       updated_at: profile.updated_at,
-      // Se tivermos addresses via join no futuro, mapear aqui
     };
   };
 
@@ -64,7 +68,7 @@ export function useAuth() {
 
       if (profileError) {
         if (profileError.code === 'PGRST116') {
-          // Perfil não encontrado, criar fallback (útil para o primeiro admin)
+          // Perfil não encontrado, criar fallback
           const { data: authUser } = await supabase.auth.getUser();
           const isAdmin = authUser.user?.email === 'brenodiogo27@icloud.com';
           
@@ -73,7 +77,7 @@ export function useAuth() {
             .insert([{
               id: userId,
               email: authUser.user?.email,
-              role: isAdmin ? UserRole.ADMIN : UserRole.BUYER,
+              role: isAdmin ? 'ADMIN' : 'BUYER',
               verification_status: isAdmin ? 'verified' : 'unverified',
               first_name: isAdmin ? 'Breno' : undefined,
               last_name: isAdmin ? 'Diogo' : undefined,
@@ -95,7 +99,6 @@ export function useAuth() {
       return mappedUser;
     } catch (err) {
       console.error('Profile load error:', err);
-      // Mantém o estado atual ou nulo se falhar criticamente
       return null;
     }
   };
@@ -114,7 +117,6 @@ export function useAuth() {
       if (error) throw error;
       if (!data.user) throw new Error('Login failed');
 
-      // IMPORTANTE: Retorna o perfil mapeado, que contém a 'role' correta
       const userProfile = await loadUserProfile(data.user.id);
       return userProfile;
     } catch (err) {

@@ -44,16 +44,16 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Removed the aggressive useEffect that forced redirects on every render.
-  // Now redirection happens only on explicit login success or dashboard button click.
-
-  const getDashboardView = (role: UserRole): ViewState => {
-    switch (role) {
-      case UserRole.ADMIN: return 'admin';
-      case UserRole.SELLER: return 'seller-dashboard';
-      case UserRole.BUYER: return 'buyer-dashboard';
-      default: return 'home';
-    }
+  // Função robusta para determinar dashboard
+  const getDashboardView = (role: UserRole | string): ViewState => {
+    const normalizedRole = role.toUpperCase();
+    console.log('Redirecting for role:', normalizedRole);
+    
+    if (normalizedRole === 'ADMIN') return 'admin';
+    if (normalizedRole === 'SELLER') return 'seller-dashboard';
+    if (normalizedRole === 'BUYER') return 'buyer-dashboard';
+    
+    return 'home';
   };
 
   const handleAddToCart = (product: Product) => {
@@ -95,11 +95,13 @@ const App: React.FC = () => {
   };
 
   const handleLoginSuccess = async (user: User) => {
+    console.log('Login successful, user:', user);
     setIsLoginOpen(false);
     AnalyticsService.trackEvent('user_login');
     
     // Auto-redirect to the appropriate dashboard upon login
     const targetView = getDashboardView(user.role);
+    console.log('Setting view to:', targetView);
     setView(targetView);
   };
 
