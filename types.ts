@@ -27,6 +27,7 @@ export interface Product {
   condition: ProductCondition;
   status: ProductStatus;
   category: string;
+  subcategory?: string; // Novo campo
   image: string;
   commissionRate: number;
   commissionAmount: number;
@@ -45,6 +46,7 @@ export interface Product {
   verification?: VerificationResult;
   gallery?: string[];
   size?: string;
+  updated_at?: string;
 }
 
 export interface User {

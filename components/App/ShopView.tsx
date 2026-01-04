@@ -14,6 +14,15 @@ interface ShopViewProps {
   onRemoveFilter: (key: string) => void;
 }
 
+const CATEGORY_MAP: Record<string, string[]> = {
+  'Elektronica': ['Smartphones', 'Laptops', 'Audio', 'Camera', 'Gaming', 'TV & Home Cinema'],
+  'Design': ['Stoelen', 'Tafels', 'Verlichting', 'Kasten', 'Decoratie', 'Banken'],
+  'Fietsen': ['Stadsfietsen', 'E-bikes', 'Racefietsen', 'Bakfietsen', 'Kinderfietsen'],
+  'Vintage Mode': ['Tassen', 'Kleding', 'Accessoires', 'Schoenen', 'Horloges', 'Sieraden'],
+  'Kunst & Antiek': ['Schilderijen', 'Sculpturen', 'Keramiek', 'Klokken', 'Glaswerk'],
+  'Gadgets': ['Drones', 'Smart Home', 'Wearables', 'Keuken', '3D Printers']
+};
+
 const ShopView: React.FC<ShopViewProps> = ({
   products,
   filters,
@@ -25,17 +34,16 @@ const ShopView: React.FC<ShopViewProps> = ({
   onResetFilters,
   onRemoveFilter
 }) => {
-  const categoryImages: Record<string, string> = {
-    'Elektronica': 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1200',
-    'Design': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=1200',
-    'Fietsen': 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=1200',
-    'Antiek': 'https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&q=80&w=1200',
-    'Gadgets': 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?auto=format&fit=crop&q=80&w=1200'
-  };
+  // Filtro local para garantir que subcategorias sejam aplicadas corretamente
+  const filteredProducts = products.filter(p => {
+    // Se houver subcategoria selecionada, verifica se bate
+    if (filters.subcategory && p.subcategory !== filters.subcategory) return false;
+    return true;
+  });
 
   React.useEffect(() => {
-    console.log('ShopView mounted with filters:', filters, 'user:', user?.id);
-  }, [filters, user]);
+    console.log('ShopView mounted with filters:', filters);
+  }, [filters]);
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-24 animate-fadeIn flex flex-col lg:flex-row gap-20">
@@ -54,24 +62,48 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
         </div>
 
-        {/* Categories */}
+        {/* Categories & Subcategories */}
         <div className="space-y-10">
           <div className="flex justify-between items-center">
             <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-slate-500">Collecties</h3>
             {filters.category !== 'All' && (
-              <button onClick={() => onFilterChange({...filters, category: 'All'})} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest border-b border-[#FF4F00]">Reset</button>
+              <button onClick={() => onFilterChange({...filters, category: 'All', subcategory: ''})} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest border-b border-[#FF4F00]">Reset</button>
             )}
           </div>
-          <div className="flex flex-col gap-6">
-            {['All', ...Object.keys(categoryImages)].map(c => (
-              <button
-                key={c}
-                onClick={() => onFilterChange({...filters, category: c})}
-                className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group ${filters.category === c ? 'text-[#FF4F00]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
-              >
-                {c}
-                <div className={`w-3 h-3 rounded-full bg-[#FF4F00] transition-all duration-300 ${filters.category === c ? 'scale-100' : 'scale-0 group-hover:scale-50 opacity-20'}`} />
-              </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => onFilterChange({...filters, category: 'All', subcategory: ''})}
+              className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group py-2 ${filters.category === 'All' ? 'text-[#FF4F00]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              All Products
+            </button>
+            
+            {Object.keys(CATEGORY_MAP).map(c => (
+              <div key={c} className="flex flex-col">
+                <button
+                  onClick={() => onFilterChange({...filters, category: c, subcategory: ''})}
+                  className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group py-2 ${filters.category === c ? 'text-[#FF4F00]' : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                  {c}
+                  <div className={`w-2 h-2 rounded-full bg-[#FF4F00] transition-all duration-300 ${filters.category === c ? 'scale-100' : 'scale-0'}`} />
+                </button>
+                
+                {/* Subcategories */}
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${filters.category === c ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
+                  <div className="pl-4 flex flex-col gap-2 border-l-2 border-slate-100 dark:border-white/10 ml-2 mt-2">
+                    {CATEGORY_MAP[c].map(sub => (
+                      <button
+                        key={sub}
+                        onClick={() => onFilterChange({...filters, category: c, subcategory: sub === filters.subcategory ? '' : sub})}
+                        className={`text-left text-xs font-bold uppercase tracking-widest transition-all py-1 ${filters.subcategory === sub ? 'text-slate-900 dark:text-white pl-2' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                      >
+                        {filters.subcategory === sub && <span className="text-[#FF4F00] mr-2">•</span>}
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -100,12 +132,18 @@ const ShopView: React.FC<ShopViewProps> = ({
         {/* Shop Header & Sort */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-slate-100 dark:border-white/10">
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400 dark:text-slate-600">({products.length})</span></h2>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400 dark:text-slate-600">({filteredProducts.length})</span></h2>
             <div className="flex flex-wrap gap-2">
               {filters.category !== 'All' && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/10 rounded-full text-[9px] font-black text-slate-500 dark:text-white uppercase tracking-widest border border-slate-100 dark:border-white/5 animate-fadeIn">
                   {filters.category}
                   <button onClick={() => onRemoveFilter('category')} className="hover:text-[#FF4F00]">×</button>
+                </div>
+              )}
+              {filters.subcategory && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-full text-[9px] font-black text-purple-600 dark:text-purple-300 uppercase tracking-widest border border-purple-100 dark:border-purple-500/20 animate-fadeIn">
+                  {filters.subcategory}
+                  <button onClick={() => onFilterChange({...filters, subcategory: ''})} className="hover:text-purple-800">×</button>
                 </div>
               )}
               {filters.search && (
@@ -114,7 +152,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   <button onClick={() => onRemoveFilter('search')} className="hover:text-[#FF4F00]">×</button>
                 </div>
               )}
-              {(filters.category !== 'All' || filters.search) && (
+              {(filters.category !== 'All' || filters.search || filters.subcategory) && (
                 <button onClick={onResetFilters} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest hover:underline ml-2">Wis alles</button>
               )}
             </div>
@@ -136,7 +174,7 @@ const ShopView: React.FC<ShopViewProps> = ({
 
         {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-24">
-          {products.map(p => (
+          {filteredProducts.map(p => (
             <ProductCard
               key={p.id}
               product={p}
@@ -148,7 +186,7 @@ const ShopView: React.FC<ShopViewProps> = ({
           ))}
         </div>
 
-        {products.length === 0 && (
+        {filteredProducts.length === 0 && (
           <div className="py-40 text-center space-y-8 bg-slate-50 dark:bg-white/5 rounded-[60px] border border-dashed border-slate-200 dark:border-white/10 animate-fadeIn">
             <div className="text-8xl grayscale opacity-20 dark:invert">🔍</div>
             <div className="space-y-2">

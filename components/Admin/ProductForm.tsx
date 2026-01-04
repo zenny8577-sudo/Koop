@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, ProductCondition, ProductStatus } from '../../types';
 import { supabase } from '../../src/integrations/supabase/client';
 
@@ -9,12 +9,23 @@ interface ProductFormProps {
   isLoading: boolean;
 }
 
+// Mapa de Categorias e Subcategorias
+const CATEGORY_MAP: Record<string, string[]> = {
+  'Elektronica': ['Smartphones', 'Laptops', 'Audio', 'Camera', 'Gaming', 'TV & Home Cinema'],
+  'Design': ['Stoelen', 'Tafels', 'Verlichting', 'Kasten', 'Decoratie', 'Banken'],
+  'Fietsen': ['Stadsfietsen', 'E-bikes', 'Racefietsen', 'Bakfietsen', 'Kinderfietsen'],
+  'Vintage Mode': ['Tassen', 'Kleding', 'Accessoires', 'Schoenen', 'Horloges', 'Sieraden'],
+  'Kunst & Antiek': ['Schilderijen', 'Sculpturen', 'Keramiek', 'Klokken', 'Glaswerk'],
+  'Gadgets': ['Drones', 'Smart Home', 'Wearables', 'Keuken', '3D Printers']
+};
+
 const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCancel, isLoading }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
     category: 'Elektronica',
+    subcategory: '',
     condition: ProductCondition.NEW,
     image: '',
     gallery: [] as string[],
@@ -25,23 +36,26 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const [keepOpen, setKeepOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Upload Function
+  // Reset subcategory when category changes
+  useEffect(() => {
+    if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
+      setFormData(prev => ({ ...prev, subcategory: CATEGORY_MAP[formData.category]?.[0] || '' }));
+    }
+  }, [formData.category]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      // 1. Create a local preview URL first (fast feedback)
       const localPreviewUrl = URL.createObjectURL(file);
-      
-      // 2. Try to upload to Supabase Storage (requires 'products' bucket)
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `products/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('products') // Assuming this bucket exists
+        .from('products')
         .upload(filePath, file);
 
       let finalUrl = localPreviewUrl;
@@ -51,8 +65,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
           .from('products')
           .getPublicUrl(filePath);
         finalUrl = publicUrl;
-      } else {
-        console.warn("Upload falhou (bucket pode não existir). Usando preview local.", uploadError);
       }
 
       if (isGallery) {
@@ -78,7 +90,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     });
 
     if (keepOpen) {
-      // Reset critical fields but keep category/condition for speed
       setFormData(prev => ({
         ...prev,
         title: '',
@@ -104,22 +115,37 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
               required
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
-              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none"
+              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
               placeholder="Bijv. iPhone 15 Pro Max"
             />
           </div>
           
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Categorie</label>
-            <select 
-              value={formData.category}
-              onChange={e => setFormData({...formData, category: e.target.value})}
-              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none cursor-pointer"
-            >
-              {['Elektronica', 'Design', 'Fietsen', 'Antiek', 'Gadgets', 'Mode'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Categorie</label>
+              <select 
+                value={formData.category}
+                onChange={e => setFormData({...formData, category: e.target.value})}
+                className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none cursor-pointer dark:text-white"
+              >
+                {Object.keys(CATEGORY_MAP).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Subcategorie</label>
+              <select 
+                value={formData.subcategory}
+                onChange={e => setFormData({...formData, subcategory: e.target.value})}
+                className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none cursor-pointer dark:text-white"
+              >
+                <option value="">Selecteer...</option>
+                {CATEGORY_MAP[formData.category]?.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -129,7 +155,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             required
             value={formData.description}
             onChange={e => setFormData({...formData, description: e.target.value})}
-            className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-medium outline-none h-32"
+            className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-medium outline-none h-32 dark:text-white"
             placeholder="Beschrijf het product gedetailleerd..."
           />
         </div>
@@ -146,7 +172,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
               required
               value={formData.price}
               onChange={e => setFormData({...formData, price: e.target.value})}
-              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none"
+              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
               placeholder="0.00"
             />
           </div>
@@ -156,7 +182,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             <input 
               value={formData.sku}
               onChange={e => setFormData({...formData, sku: e.target.value})}
-              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none"
+              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
               placeholder="AUTO-GEN"
             />
           </div>
@@ -166,7 +192,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             <select 
               value={formData.condition}
               onChange={e => setFormData({...formData, condition: e.target.value as ProductCondition})}
-              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none"
+              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
             >
               {Object.values(ProductCondition).map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -189,17 +215,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                   onChange={(e) => handleImageUpload(e, false)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                    {isUploading ? 'Uploaden...' : 'Klik om te uploaden of sleep hierheen'}
                 </div>
             </div>
             {formData.image ? (
-              <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200" alt="Preview" />
+              <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10" alt="Preview" />
             ) : (
                 <input 
                   value={formData.image}
                   onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none"
+                  className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
                   placeholder="Of plak URL..."
                 />
             )}
@@ -240,7 +266,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <button 
           type="button" 
           onClick={onCancel}
-          className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 hover:text-slate-900 transition-all"
+          className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"
         >
           Annuleren
         </button>
