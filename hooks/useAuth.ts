@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { authService } from '../services/authService';
 import { supabase } from '../src/integrations/supabase/client';
 import { User, UserRole } from '../types';
 
@@ -9,42 +8,87 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadUser = async () => {
+    // Check for existing session on mount
+    const checkSession = async () => {
       try {
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        }
       } catch (err) {
-        console.error('Auth error:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error('Session check error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadUser();
+    checkSession();
 
     // Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        loadUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
       }
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
+
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        // If profile doesn't exist, create one
+        if (profileError.code === 'PGRST116') {
+          const { data: authUser } = await supabase.auth.getUser();
+          const { data: newProfile, error: createError } = await supabase
+            .from('users')
+            .insert([{
+              id: userId,
+              email: authUser.user?.email,
+              role: UserRole.BUYER,
+              verification_status: 'unverified',
+              created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          setUser(newProfile);
+          return;
+        }
+        throw profileError;
+      }
+
+      setUser(profile);
+    } catch (err) {
+      console.error('Profile load error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load user profile');
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      const user = await authService.signIn(email, password);
-      setUser(user);
-      return user;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Login failed');
+
+      await loadUserProfile(data.user.id);
+      return data.user;
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -59,7 +103,8 @@ export function useAuth() {
     setError(null);
     
     try {
-      await authService.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       setUser(null);
     } catch (err) {
       console.error('Logout error:', err);
@@ -75,9 +120,26 @@ export function useAuth() {
     setError(null);
     
     try {
-      const user = await authService.signUp(email, password, role, firstName, lastName);
-      setUser(user);
-      return user;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            role: role
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Signup failed');
+
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await loadUserProfile(data.user.id);
+      
+      return data.user;
     } catch (err) {
       console.error('Signup error:', err);
       setError(err instanceof Error ? err.message : 'Signup failed');

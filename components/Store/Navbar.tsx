@@ -156,6 +156,15 @@ const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 )}
                 
+                {user.role === UserRole.SELLER && (
+                  <button 
+                    onClick={() => {}} 
+                    className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors"
+                  >
+                    Mijn Winkel
+                  </button>
+                )}
+                
                 <div className="my-2 border-t border-slate-100" />
                 
                 <button 

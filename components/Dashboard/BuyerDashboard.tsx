@@ -9,8 +9,7 @@ interface BuyerDashboardProps {
   user: User;
 }
 
-const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) => {
-  const [user, setUser] = useState<User>(initialUser);
+const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'profile'>('orders');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -34,10 +33,6 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) =>
     } catch (error) {
       console.error('Failed to load transactions:', error);
     }
-  };
-
-  const handleUpdateUser = (updatedUser: User) => {
-    setUser(updatedUser);
   };
 
   const handleOpenReview = (t: Transaction) => {
@@ -190,8 +185,8 @@ const BuyerDashboard: React.FC<BuyerDashboardProps> = ({ user: initialUser }) =>
         </div>
       )}
 
-      {activeTab === 'addresses' && <AddressBook user={user} onUpdate={handleUpdateUser} />}
-      {activeTab === 'profile' && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
+      {activeTab === 'addresses' && <AddressBook user={user} onUpdate={() => {}} />}
+      {activeTab === 'profile' && <ProfileSettings user={user} onUpdate={() => {}} />}
 
       {showReviewModal && selectedTransaction && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 animate-fadeIn">

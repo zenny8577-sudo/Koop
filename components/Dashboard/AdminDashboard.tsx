@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/integrations/supabase/client';
 import { Product, User, UserRole, ProductStatus } from '../../types';
-import { ICONS } from '../../constants';
 import { AnalyticsService } from '../../services/analyticsService';
 
 const AdminDashboard: React.FC = () => {
@@ -27,7 +26,8 @@ const AdminDashboard: React.FC = () => {
         .select('*');
       
       if (productsResponse.error) throw productsResponse.error;
-      setProducts(productsResponse.data || []);
+      const productsData = productsResponse.data || [];
+      setProducts(productsData);
       
       // Load users
       const { data: usersData, error: usersError } = await supabase
@@ -35,14 +35,15 @@ const AdminDashboard: React.FC = () => {
         .select('*');
       
       if (usersError) throw usersError;
-      setUsers(usersData || []);
+      const usersList = usersData || [];
+      setUsers(usersList);
       
       // Calculate stats
       setStats({
-        totalSales: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.SOLD).length,
-        activeListings: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.ACTIVE).length,
-        pendingApprovals: (productsResponse.data || []).filter((p: any) => p.status === ProductStatus.PENDING_APPROVAL).length,
-        newUsers: (usersData || []).filter((u: any) => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
+        totalSales: productsData.filter((p: any) => p.status === ProductStatus.SOLD).length,
+        activeListings: productsData.filter((p: any) => p.status === ProductStatus.ACTIVE).length,
+        pendingApprovals: productsData.filter((p: any) => p.status === ProductStatus.PENDING_APPROVAL).length,
+        newUsers: usersList.filter((u: any) => new Date(u.created_at).getTime() > Date.now() - 86400000 * 7).length
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');

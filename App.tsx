@@ -13,13 +13,13 @@ import BuyerDashboard from './components/Dashboard/BuyerDashboard';
 import SellRegistrationForm from './components/Auth/SellRegistrationForm';
 import SellInfoPage from './components/Store/SellInfoPage';
 import InfoPages from './components/Store/InfoPages';
-import ProductList from './components/Products/ProductList';
 import { supabase } from './src/integrations/supabase/client';
 import { Product, User, UserRole, CartItem, Address, ProductStatus } from './types';
 import { AnalyticsService } from './services/analyticsService';
 import HomeView from './components/App/HomeView';
 import ShopView from './components/App/ShopView';
 import SuccessView from './components/App/SuccessView';
+import { mockProducts } from './services/mockData';
 
 type ViewState = 'home' | 'shop' | 'detail' | 'admin' | 'seller-dashboard' | 'buyer-dashboard' | 'sell' | 'sell-onboarding' | 'about' | 'faq' | 'contact' | 'privacy' | 'terms' | 'cookies' | 'checkout' | 'success';
 
@@ -30,17 +30,23 @@ const App: React.FC = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [filters, setFilters] = useState({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
   const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
-  const { user, loading: authLoading, error: authError, signIn, signOut } = useAuth();
+  
+  const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
   useEffect(() => {
-    loadProducts();
+    // Load mock products for demo
+    setProductsData({ data: mockProducts, total: mockProducts.length });
+  }, []);
+
+  useEffect(() => {
     AnalyticsService.pageView(view);
-  }, [filters, view]);
+  }, [view]);
 
   useEffect(() => {
     // Redirect to appropriate dashboard after login
     if (user) {
+      setIsLoginOpen(false);
       if (user.role === UserRole.ADMIN) {
         setView('admin');
       } else if (user.role === UserRole.SELLER) {
@@ -50,37 +56,6 @@ const App: React.FC = () => {
       }
     }
   }, [user]);
-
-  const loadProducts = async () => {
-    try {
-      // Mock implementation for now
-      // In a real app, this would fetch from Supabase
-      const mockProducts = [
-        {
-          id: '1',
-          sellerId: 'user_123',
-          title: 'iPhone 15 Pro',
-          description: 'Premium quality item in LIKE_NEW condition.',
-          price: 999,
-          condition: 'LIKE_NEW',
-          status: ProductStatus.ACTIVE,
-          category: 'Elektronica',
-          image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800',
-          commissionRate: 0.15,
-          commissionAmount: 149.85,
-          sku: 'KOOP-TECH-1001',
-          barcode: '871234561001',
-          weight: 0.2,
-          shippingMethods: ['postnl', 'dhl'],
-          is3DModel: false
-        }
-      ];
-      
-      setProductsData({ data: mockProducts, total: 1 });
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    }
-  };
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -92,7 +67,6 @@ const App: React.FC = () => {
       setIsLoginOpen(true);
       return;
     }
-    // In a real implementation, this would update the wishlist in Supabase
     console.log('Toggle wishlist for product:', productId);
   };
 
@@ -122,20 +96,10 @@ const App: React.FC = () => {
   };
 
   const handleLoginSuccess = async (user: User) => {
-    try {
-      setIsLoginOpen(false);
-      AnalyticsService.trackEvent('user_login');
-      // Navigate to appropriate dashboard
-      if (user.role === UserRole.ADMIN) {
-        setView('admin');
-      } else if (user.role === UserRole.SELLER) {
-        setView('seller-dashboard');
-      } else if (user.role === UserRole.BUYER) {
-        setView('buyer-dashboard');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-    }
+    // The useAuth hook handles setting the user
+    // We just need to close the modal
+    setIsLoginOpen(false);
+    AnalyticsService.trackEvent('user_login');
   };
 
   const handleLogout = async () => {
@@ -193,8 +157,10 @@ const App: React.FC = () => {
             setView('admin');
           } else if (user?.role === UserRole.SELLER) {
             setView('seller-dashboard');
-          } else {
+          } else if (user?.role === UserRole.BUYER) {
             setView('buyer-dashboard');
+          } else {
+            setIsLoginOpen(true);
           }
         }} 
         onSell={() => setView('sell')} 
@@ -211,6 +177,10 @@ const App: React.FC = () => {
         onRemove={handleRemoveFromCart} 
         onCheckout={() => {
           setIsCartOpen(false);
+          if (!user) {
+            setIsLoginOpen(true);
+            return;
+          }
           setView('checkout');
         }} 
       />

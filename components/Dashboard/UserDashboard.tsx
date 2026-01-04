@@ -4,9 +4,12 @@ import { Product, ProductStatus, ProductCondition, User } from '../../types';
 import { AnalyticsService } from '../../services/analyticsService';
 import ProfileSettings from '../Profile/ProfileSettings';
 
-const UserDashboard: React.FC = () => {
+interface UserDashboardProps {
+  user: User;
+}
+
+const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<'inventory' | 'analytics' | 'profile'>('inventory');
-  const [user, setUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,62 +24,26 @@ const UserDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    loadUserData();
+    loadUserProducts();
     AnalyticsService.trackEvent('seller_dashboard_view');
-  }, []);
+  }, [user.id]);
 
-  const loadUserData = async () => {
+  const loadUserProducts = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Get current user
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authUser) throw new Error('User not authenticated');
-
-      // Get user details
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (userError) throw userError;
-      setUser(userData);
-
-      // Get user's products
-      const { data: productsData, error: productsError } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('seller_id', authUser.id);
-
-      if (productsError) throw productsError;
-      setProducts(productsData || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
-      console.error('Dashboard load error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const refresh = async () => {
-    await loadUserData();
-  };
-
-  const handleUpdateUser = async (updatedUser: User) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .update(updatedUser)
-        .eq('id', updatedUser.id)
-        .select()
-        .single();
+        .eq('seller_id', user.id);
 
       if (error) throw error;
-      setUser(data);
+      setProducts(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      setError(err instanceof Error ? err.message : 'Failed to load products');
+      console.error('Products load error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -93,18 +60,19 @@ const UserDashboard: React.FC = () => {
           category: newProduct.category,
           condition: newProduct.condition,
           description: newProduct.description,
-          seller_id: user?.id,
+          seller_id: user.id,
           status: ProductStatus.PENDING_APPROVAL,
           image: newProduct.image,
           commission_rate: 0.15,
           commission_amount: parseFloat(newProduct.price) * 0.15,
+          created_at: new Date().toISOString()
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      await refresh();
+      await loadUserProducts();
       setShowAddModal(false);
       setNewProduct({
         title: '',
@@ -133,14 +101,6 @@ const UserDashboard: React.FC = () => {
     pendingCount: products.filter(p => p.status === ProductStatus.PENDING_APPROVAL).length,
   };
 
-  if (isLoading && !user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF4F00]"></div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-8">
@@ -148,7 +108,7 @@ const UserDashboard: React.FC = () => {
           <h3 className="text-lg font-bold text-rose-800 mb-2">Error</h3>
           <p className="text-rose-600">{error}</p>
           <button 
-            onClick={loadUserData} 
+            onClick={loadUserProducts} 
             className="mt-4 px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition-colors"
           >
             Retry
@@ -304,7 +264,7 @@ const UserDashboard: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'profile' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
+      {activeTab === 'profile' && <ProfileSettings user={user} onUpdate={() => {}} />}
 
       {showAddModal && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 animate-fadeIn">
