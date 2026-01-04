@@ -100,7 +100,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             </svg>
           </div>
           <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Account Gemaakt!</h3>
-          <p className="text-slate-500 font-medium">Controleer je e-mail voor verificatie.</p>
+          <p className="text-slate-500 font-medium">Je kunt nu inloggen.</p>
         </div>
       </div>
     );

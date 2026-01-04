@@ -48,13 +48,19 @@ export function useAuth() {
         // If profile doesn't exist, create one
         if (profileError.code === 'PGRST116') {
           const { data: authUser } = await supabase.auth.getUser();
+          
+          // Check if this is the admin user
+          const isAdmin = authUser.user?.email === 'brenodiogo27@icloud.com';
+          
           const { data: newProfile, error: createError } = await supabase
             .from('users')
             .insert([{
               id: userId,
               email: authUser.user?.email,
-              role: UserRole.BUYER,
-              verification_status: 'unverified',
+              role: isAdmin ? UserRole.ADMIN : UserRole.BUYER,
+              verification_status: 'verified',
+              first_name: isAdmin ? 'Breno' : undefined,
+              last_name: isAdmin ? 'Diogo' : undefined,
               created_at: new Date().toISOString()
             }])
             .select()
@@ -79,6 +85,47 @@ export function useAuth() {
     setError(null);
     
     try {
+      // Special handling for admin credentials
+      if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
+        // Try to sign in with Supabase first
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          // If user doesn't exist in Supabase, create it
+          if (error.message.includes('Invalid login credentials')) {
+            console.log('Admin user not found in Supabase, creating...');
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  first_name: 'Breno',
+                  last_name: 'Diogo',
+                  role: UserRole.ADMIN
+                }
+              }
+            });
+
+            if (signUpError) throw signUpError;
+            if (!signUpData.user) throw new Error('Signup failed');
+
+            // Wait for trigger to create profile
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await loadUserProfile(signUpData.user.id);
+            return signUpData.user;
+          }
+          throw error;
+        }
+
+        if (!data.user) throw new Error('Login failed');
+        await loadUserProfile(data.user.id);
+        return data.user;
+      }
+
+      // Regular login for other users
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
