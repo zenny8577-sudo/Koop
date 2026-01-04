@@ -3,7 +3,7 @@ import { Product, ProductCondition, ProductStatus } from '../../types';
 import { supabase } from '../../src/integrations/supabase/client';
 
 interface ProductFormProps {
-  initialData?: Partial<Product> | any; // Allow any to handle snake_case properties from DB
+  initialData?: Partial<Product> | any;
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
@@ -19,27 +19,35 @@ const CATEGORY_MAP: Record<string, string[]> = {
 };
 
 const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCancel, isLoading }) => {
+  // Inicialização robusta do estado, mapeando campos snake_case do DB para camelCase do form
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    category: 'Elektronica',
-    subcategory: '',
-    condition: ProductCondition.NEW,
-    image: '',
-    gallery: [] as string[],
-    sku: '',
-    // Mapeamento inteligente para ler tanto camelCase quanto snake_case
+    title: initialData?.title || '',
+    description: initialData?.description || '',
+    price: initialData?.price || '',
+    category: initialData?.category || 'Elektronica',
+    subcategory: initialData?.subcategory || '',
+    condition: initialData?.condition || ProductCondition.NEW,
+    image: initialData?.image || '',
+    gallery: initialData?.gallery || [],
+    sku: initialData?.sku || '',
+    // Mapeamento crítico para edição funcionar
     originCountry: initialData?.originCountry || initialData?.origin_country || 'NL',
     estimatedDelivery: initialData?.estimatedDelivery || initialData?.estimated_delivery || '1-3 werkdagen',
+    // Preserva outros campos
     ...initialData
   });
+  
   const [keepOpen, setKeepOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
+    // Auto-select subcategory if needed
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
-      setFormData(prev => ({ ...prev, subcategory: CATEGORY_MAP[formData.category]?.[0] || '' }));
+      // Don't overwrite if it's already set correctly (e.g. from initialData) unless it's invalid for the category
+      const validSubs = CATEGORY_MAP[formData.category] || [];
+      if (validSubs.length > 0 && !validSubs.includes(formData.subcategory)) {
+         setFormData(prev => ({ ...prev, subcategory: validSubs[0] }));
+      }
     }
   }, [formData.category]);
 
@@ -53,13 +61,18 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        // Sanitize filename to avoid issues
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `products/${fileName}`;
+        const safeName = file.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}_${safeName}.${fileExt}`;
+        const filePath = `${fileName}`; // Upload to root of bucket or folder
 
         const { error: uploadError } = await supabase.storage
           .from('products')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
 
@@ -77,7 +90,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       }
     } catch (error) {
       console.error('Upload Error:', error);
-      alert('Fout bij uploaden afbeelding.');
+      alert(`Fout bij uploaden: ${(error as Error).message}`);
     } finally {
       setIsUploading(false);
     }
@@ -85,12 +98,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploading) return; // Prevent submit while uploading
+
     await onSubmit({
       ...formData,
-      price: parseFloat(formData.price as string),
+      // Ensure numeric/clean values
+      price: parseFloat(formData.price.toString()),
       sku: formData.sku || `SKU-${Date.now()}`,
       status: ProductStatus.ACTIVE,
-      // Garante que os campos de logística são passados corretamente
+      // Ensure these specific fields are passed correctly
+      image: formData.image,
+      gallery: formData.gallery,
       originCountry: formData.originCountry,
       estimatedDelivery: formData.estimatedDelivery
     });
@@ -164,12 +182,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Logistiek</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Herkomst (Landcode)</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Herkomst (Landcode, bijv. NL, CN)</label>
               <input 
                 value={formData.originCountry}
                 onChange={e => setFormData({...formData, originCountry: e.target.value.toUpperCase()})}
                 className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-                placeholder="NL, CN, DE"
+                placeholder="NL"
                 maxLength={2}
               />
            </div>
@@ -231,11 +249,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                 <input 
                   type="file"
                   accept="image/*"
+                  disabled={isUploading}
                   onChange={(e) => handleImageUpload(e, false)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                 />
-                <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2">
-                   {isUploading ? 'Uploaden...' : 'Klik om te uploaden of sleep hierheen'}
+                <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20">
+                   {isUploading ? (
+                     <div className="flex items-center gap-2 text-[#FF4F00]">
+                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                       <span>Uploaden...</span>
+                     </div>
+                   ) : 'Klik om te uploaden of sleep hierheen'}
                 </div>
             </div>
             {formData.image ? (
@@ -256,34 +280,37 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                   type="file"
                   accept="image/*"
                   multiple
+                  disabled={isUploading}
                   onChange={(e) => handleImageUpload(e, true)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
-                <span className="text-[10px] font-black uppercase text-purple-600 hover:underline cursor-pointer">+ Toevoegen (Selecteer meerdere)</span>
+                <span className={`text-[10px] font-black uppercase text-purple-600 hover:underline cursor-pointer ${isUploading ? 'opacity-50' : ''}`}>+ Toevoegen</span>
              </div>
            </div>
-           <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px]">
-             {formData.gallery?.map((url, i) => (
-               <div key={i} className="relative w-20 h-20 shrink-0">
-                 <img src={url} className="w-full h-full object-cover rounded-xl" />
-                 <button 
-                   type="button"
-                   onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }))}
-                   className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md"
-                 >
-                   ×
-                 </button>
-               </div>
-             ))}
-           </div>
+           {formData.gallery && formData.gallery.length > 0 && (
+             <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px]">
+               {formData.gallery.map((url: string, i: number) => (
+                 <div key={i} className="relative w-20 h-20 shrink-0">
+                   <img src={url} className="w-full h-full object-cover rounded-xl" />
+                   <button 
+                     type="button"
+                     onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }))}
+                     className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md"
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+           )}
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
         <button type="button" onClick={onCancel} className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 transition-all">Annuleren</button>
         <div className="flex-1 flex gap-4">
-            <button type="submit" onClick={() => setKeepOpen(true)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all">Opslaan & Nog een</button>
-            <button type="submit" onClick={() => setKeepOpen(false)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-xl shadow-purple-500/20">{isLoading ? 'Opslaan...' : 'Publiceren'}</button>
+            <button type="submit" onClick={() => setKeepOpen(true)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all disabled:opacity-50">Opslaan & Nog een</button>
+            <button type="submit" onClick={() => setKeepOpen(false)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-xl shadow-purple-500/20 disabled:opacity-50">{isLoading ? 'Bezig...' : 'Publiceren'}</button>
         </div>
       </div>
     </form>
