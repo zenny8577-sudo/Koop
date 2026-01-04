@@ -223,7 +223,7 @@ const App: React.FC = () => {
         
         {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
         
-        {view === 'seller-dashboard' && user && <UserDashboard />}
+        {view === 'seller-dashboard' && user && <UserDashboard user={user} />}
         
         {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
         

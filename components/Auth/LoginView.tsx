@@ -46,15 +46,12 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     }
 
     try {
-      let user: User;
-      
       if (activeTab === 'login') {
         await signIn(email, password);
         // The useAuth hook will handle setting the user
-        // We need to get the user from the hook
-        // For now, we'll call onSuccess with a minimal user object
-        // The actual user will be set by the hook
-        onSuccess({ id: 'loading', email, role: UserRole.BUYER });
+        // The useEffect in App.tsx will handle the redirect
+        // We just need to close the modal
+        onClose();
       } else {
         await signUp(email, password, role, firstName, lastName);
         setShowSuccess(true);
@@ -71,7 +68,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         return;
       }
       
-      onClose();
+      // Reset form
       setActiveTab('login');
       setEmail('');
       setPassword('');
