@@ -44,33 +44,36 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   }, [formData.category]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
-      const localPreviewUrl = URL.createObjectURL(file);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const uploadedUrls: string[] = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
-      let finalUrl = localPreviewUrl;
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, file);
 
-      if (!uploadError) {
+        if (uploadError) throw uploadError;
+
         const { data: { publicUrl } } = supabase.storage
           .from('products')
           .getPublicUrl(filePath);
-        finalUrl = publicUrl;
+        
+        uploadedUrls.push(publicUrl);
       }
 
       if (isGallery) {
-        setFormData(prev => ({ ...prev, gallery: [...prev.gallery, finalUrl] }));
+        setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), ...uploadedUrls] }));
       } else {
-        setFormData(prev => ({ ...prev, image: finalUrl }));
+        setFormData(prev => ({ ...prev, image: uploadedUrls[0] }));
       }
     } catch (error) {
       console.error('Upload Error:', error);
@@ -234,19 +237,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
         <div className="space-y-4">
            <div className="flex justify-between items-center">
-             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery.length})</label>
+             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0})</label>
              <div className="relative">
                 <input 
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={(e) => handleImageUpload(e, true)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                <span className="text-[10px] font-black uppercase text-purple-600 hover:underline cursor-pointer">+ Toevoegen</span>
+                <span className="text-[10px] font-black uppercase text-purple-600 hover:underline cursor-pointer">+ Toevoegen (Selecteer meerdere)</span>
              </div>
            </div>
-           <div className="flex gap-4 overflow-x-auto pb-2">
-             {formData.gallery.map((url, i) => (
+           <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px]">
+             {formData.gallery?.map((url, i) => (
                <div key={i} className="relative w-20 h-20 shrink-0">
                  <img src={url} className="w-full h-full object-cover rounded-xl" />
                  <button 
@@ -258,6 +262,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                  </button>
                </div>
              ))}
+             {(!formData.gallery || formData.gallery.length === 0) && (
+               <div className="w-full py-4 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-2xl">
+                 Geen extra afbeeldingen
+               </div>
+             )}
            </div>
         </div>
       </div>

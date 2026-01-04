@@ -20,8 +20,21 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || 'admin_local';
 
+      // Construir payload explicitamente para garantir que apenas colunas válidas do DB sejam enviadas
+      // (Supabase não aceita chaves camelCase que não existam como colunas)
       const productPayload = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        category: formData.category,
+        subcategory: formData.subcategory,
+        condition: formData.condition,
+        image: formData.image,
+        gallery: formData.gallery,
+        sku: formData.sku,
+        status: ProductStatus.ACTIVE,
+        
+        // Mapeamento correto para snake_case
         seller_id: userId,
         commission_rate: 0.15,
         commission_amount: formData.price * 0.15,
@@ -30,15 +43,23 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       };
 
       if (editingProduct) {
-        const { error } = await supabase.from('products').update(productPayload).eq('id', editingProduct.id);
+        // Para update, usamos o ID do produto que estamos editando
+        const { error } = await supabase
+          .from('products')
+          .update(productPayload)
+          .eq('id', editingProduct.id);
+          
         if (error) throw error;
         alert('Product bijgewerkt!');
       } else {
-        const { error } = await supabase.from('products').insert([{
-          ...productPayload,
-          created_at: new Date().toISOString(),
-          status: ProductStatus.ACTIVE
-        }]);
+        // Para insert, adicionamos created_at
+        const { error } = await supabase
+          .from('products')
+          .insert([{
+            ...productPayload,
+            created_at: new Date().toISOString()
+          }]);
+          
         if (error) throw error;
         alert('Product aangemaakt!');
       }
@@ -47,6 +68,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       setShowProductForm(false);
       setEditingProduct(null);
     } catch (err) {
+      console.error(err);
       alert('Actie mislukt: ' + (err as Error).message);
     } finally {
       setActionLoading(false);
@@ -60,7 +82,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       onRefresh();
     } catch (err) {
       alert('Kan niet verwijderen (Mock data of Database fout)');
-      onRefresh(); // Refresh anyway to update local state if needed via parent logic
+      onRefresh(); 
     }
   };
 
