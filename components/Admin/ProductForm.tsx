@@ -38,6 +38,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
 
+  // Sincroniza subcategorias
   useEffect(() => {
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
       const validSubs = CATEGORY_MAP[formData.category] || [];
@@ -50,6 +51,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    // Verifica limite de 5 fotos
+    if (isGallery) {
+        const currentCount = formData.gallery?.length || 0;
+        if (currentCount + files.length > 5) {
+            alert(`Maximaal 5 foto's toegestaan. U heeft er al ${currentCount}.`);
+            e.target.value = ''; // Reset input
+            return;
+        }
+    }
 
     setIsUploading(true);
     try {
@@ -83,7 +94,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       alert('Upload mislukt. Controleer uw verbinding en bestandsgrootte.');
     } finally {
       setIsUploading(false);
-      if (e.target) e.target.value = '';
+      if (e.target) e.target.value = ''; // Reset input
     }
   };
 
@@ -92,6 +103,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     
     if (!galleryUrlInput || galleryUrlInput.trim().length < 5) return;
     
+    // Verifica limite de 5 fotos
+    if ((formData.gallery?.length || 0) >= 5) {
+        alert("Maximaal 5 foto's toegestaan in de galerij.");
+        return;
+    }
+
     setFormData(prev => ({ 
       ...prev, 
       gallery: [...(prev.gallery || []), galleryUrlInput.trim()] 
@@ -117,12 +134,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         return;
       }
 
-      // Sanitização da galeria: Remove duplicatas e strings vazias
+      // Sanitização da galeria: Remove duplicatas e strings vazias, e limita a 5
       const cleanGallery = [...new Set((formData.gallery || [])
         .map((url: string) => url?.trim())
-        .filter((url: string) => url && url.length > 5))];
+        .filter((url: string) => url && url.length > 5))].slice(0, 5);
 
-      const finalImage = formData.image || (cleanGallery.length > 0 ? cleanGallery[0] : 'https://via.placeholder.com/800?text=No+Image');
+      const finalImage = formData.image || 'https://via.placeholder.com/800?text=No+Image';
 
       await onSubmit({
         ...formData,
@@ -269,7 +286,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Media</h3>
         
         <div className="space-y-4">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding (Cover)</label>
           <div className="flex gap-4 items-center">
               <div className="flex-1 relative group">
                   <input 
@@ -297,7 +314,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
            <div className="flex justify-between items-center">
-             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0} extra foto's)</label>
+             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0}/5 extra foto's)</label>
            </div>
            
            <div className="flex flex-col gap-4">
@@ -313,11 +330,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                           handleAddGalleryUrl();
                         }
                       }}
+                      disabled={(formData.gallery?.length || 0) >= 5}
                   />
                   <button 
                       type="button"
                       onClick={(e) => handleAddGalleryUrl(e)}
-                      className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
+                      disabled={(formData.gallery?.length || 0) >= 5}
+                      className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                       +
                   </button>
@@ -328,13 +347,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                       type="file"
                       accept="image/*"
                       multiple
-                      disabled={isUploading}
+                      disabled={isUploading || (formData.gallery?.length || 0) >= 5}
                       onChange={(e) => handleImageUpload(e, true)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
-                  <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2`}>
+                  <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 ${((formData.gallery?.length || 0) >= 5) ? 'opacity-50' : ''}`}>
                       <span className="text-2xl mr-2">📸</span>
-                      {isUploading ? 'Uploaden...' : 'Klik hier om MEERDERE foto\'s te selecteren'}
+                      {isUploading ? 'Uploaden...' : (formData.gallery?.length || 0) >= 5 ? 'Limiet Bereikt (5/5)' : 'Klik hier om MEERDERE foto\'s te selecteren'}
                   </div>
               </div>
            </div>
