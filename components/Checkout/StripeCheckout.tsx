@@ -20,51 +20,37 @@ const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onEr
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [initializing, setInitializing] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const createPaymentIntent = async () => {
       try {
+        setErrorMessage(null);
         // Amount is passed in Euros, convert to cents for Stripe
         const { clientSecret } = await PaymentService.createPaymentIntent(amount * 100); 
         if (mounted) setClientSecret(clientSecret);
       } catch (error) {
         console.error("Init payment error", error);
-        // Mesmo com erro, tentamos setar um mock para não travar a UI em dev
-        if (mounted) setClientSecret(`mock_error_${Date.now()}`);
-      } finally {
-        if (mounted) setInitializing(false);
+        if (mounted) setErrorMessage((error as Error).message || 'Kan geen verbinding maken met de betalingsprovider.');
+        onError("Payment initialization failed");
       }
     };
 
     createPaymentIntent();
     
     return () => { mounted = false; };
-  }, [amount]);
+  }, [amount, onError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!clientSecret) return;
+    if (!stripe || !elements || !clientSecret) {
+      return;
+    }
 
     setLoading(true);
-
-    // MOCK / DEMO MODE HANDLING
-    if (clientSecret.startsWith('mock_')) {
-      setTimeout(() => {
-        setLoading(false);
-        onSuccess();
-      }, 1500); // Simula delay de rede
-      return;
-    }
-
-    // REAL STRIPE HANDLING
-    if (!stripe || !elements) {
-      setLoading(false);
-      return;
-    }
 
     try {
       const { error } = await stripe.confirmPayment({
@@ -88,8 +74,29 @@ const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onEr
     }
   };
 
+  // UI DE ERRO INICIAL
+  if (errorMessage) {
+    return (
+      <div className="bg-rose-50 p-6 rounded-[32px] border border-rose-100 flex flex-col items-center justify-center text-center space-y-4 py-12">
+        <div className="w-12 h-12 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <div>
+           <h4 className="font-bold text-rose-900">Verbindingsfout</h4>
+           <p className="text-xs text-rose-700 mt-1">{errorMessage}</p>
+        </div>
+        <button 
+           onClick={() => window.location.reload()}
+           className="px-6 py-2 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 transition-colors"
+        >
+          Pagina Verversen
+        </button>
+      </div>
+    );
+  }
+
   // UI DE CARREGAMENTO
-  if (initializing || !clientSecret) {
+  if (!clientSecret) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-6">
         <div className="w-12 h-12 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin"></div>
@@ -97,53 +104,6 @@ const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onEr
           Beveiligde verbinding starten...
         </p>
       </div>
-    );
-  }
-
-  // UI MOCK / DEMO
-  if (clientSecret.startsWith('mock_')) {
-    return (
-      <form onSubmit={handleSubmit} className="space-y-8 animate-fadeIn">
-        <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 flex items-start gap-4">
-          <div className="p-2 bg-amber-100 rounded-full text-amber-600">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </div>
-          <div>
-            <h4 className="font-bold text-amber-900 text-sm uppercase tracking-wide mb-1">Demo Modus</h4>
-            <p className="text-xs text-amber-700/80 leading-relaxed">
-              De backend verbinding is traag of niet geconfigureerd. U kunt doorgaan in simulatie-modus. Er wordt niets afgeschreven.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100 space-y-6 opacity-60 pointer-events-none grayscale">
-           {/* Fake Card UI for visual feedback */}
-           <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kaartnummer</label>
-              <div className="h-12 bg-white rounded-xl border border-slate-200 flex items-center px-4">
-                 <span className="text-slate-400 text-sm">•••• •••• •••• 4242</span>
-              </div>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-              <div className="h-12 bg-white rounded-xl border border-slate-200"></div>
-              <div className="h-12 bg-white rounded-xl border border-slate-200"></div>
-           </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-4">
-          <div className="flex items-center gap-2 text-slate-400">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span className="text-[10px] font-bold uppercase tracking-widest">Simulatie</span>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-12 py-5 bg-slate-900 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-[#FF4F00] transition-all transform hover:-translate-y-1 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Verwerken...' : `Demo Betalen € ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`}
-          </button>
-        </div>
-      </form>
     );
   }
 
