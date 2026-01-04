@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useCart } from './hooks/useCart';
+import { ThemeProvider } from './context/ThemeContext'; // Import ThemeProvider
 import Navbar from './components/Store/Navbar';
 import Footer from './components/Store/Footer';
 import CartDrawer from './components/Store/CartDrawer';
@@ -23,7 +24,7 @@ import { mockProducts } from './services/mockData';
 
 type ViewState = 'home' | 'shop' | 'detail' | 'admin' | 'seller-dashboard' | 'buyer-dashboard' | 'sell' | 'sell-onboarding' | 'about' | 'faq' | 'contact' | 'privacy' | 'terms' | 'cookies' | 'checkout' | 'success';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [view, setView] = useState<ViewState>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -34,26 +35,23 @@ const App: React.FC = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
-  // Carregamento Híbrido: Supabase + Mock Fallback
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('status', 'ACTIVE'); // Carrega apenas produtos ativos para a loja
+          .eq('status', 'ACTIVE');
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          console.log("✅ Produtos carregados do Supabase:", data.length);
           setProductsData({ data, total: data.length });
         } else {
-          console.log("⚠️ Nenhum produto no Supabase. Usando Mock Data.");
           setProductsData({ data: mockProducts, total: mockProducts.length });
         }
       } catch (err) {
-        console.error("❌ Erro ao carregar produtos. Usando Mock Data.", err);
+        console.error("Using Mock Data due to error or empty DB.", err);
         setProductsData({ data: mockProducts, total: mockProducts.length });
       }
     };
@@ -61,13 +59,11 @@ const App: React.FC = () => {
     fetchProducts();
   }, []);
 
-  // Track page views
   useEffect(() => {
     AnalyticsService.pageView(view);
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Lógica Central de Roteamento
   const getDashboardView = (role: string | undefined): ViewState => {
     const r = (role || 'BUYER').toUpperCase();
     if (r === 'ADMIN') return 'admin';
@@ -75,18 +71,6 @@ const App: React.FC = () => {
     return 'buyer-dashboard';
   };
 
-  // Redirecionamento Automático (Estado Inicial / Refresh)
-  useEffect(() => {
-    if (!authLoading && user) {
-      if (['home', 'sell', 'about', 'contact'].includes(view)) {
-        // Opcional: Redirecionar para dashboard ao logar
-        // const target = getDashboardView(user.role);
-        // setView(target);
-      }
-    }
-  }, [user, authLoading]);
-
-  // Handlers
   const handleAddToCart = (product: Product) => {
     addToCart(product);
     setIsCartOpen(true);
@@ -111,15 +95,16 @@ const App: React.FC = () => {
   };
 
   const handleLoginSuccess = (loggedInUser: User) => {
-    console.log('🚀 Login Success Triggered. User:', loggedInUser);
     setIsLoginOpen(false);
     const nextView = getDashboardView(loggedInUser.role);
     setView(nextView);
   };
 
+  // LOGOUT FIX: Force view change and wait for signout
   const handleLogout = async () => {
+    setView('home'); // Immediate UI feedback
     await signOut();
-    setView('home');
+    // No need to do anything else, useAuth will update user state to null
   };
 
   const navigateToDetail = (product: Product) => {
@@ -127,13 +112,12 @@ const App: React.FC = () => {
     setView('detail');
   };
 
-  // Loading Screen
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
         <div className="text-center space-y-4">
            <div className="w-16 h-16 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin mx-auto"></div>
-           <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Authenticating...</p>
+           <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Koop...</p>
         </div>
       </div>
     );
@@ -144,7 +128,7 @@ const App: React.FC = () => {
     if (view === 'success') return <SuccessView onNavigate={(v) => setView(v as ViewState)} />;
     
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
         <Navbar 
           onHome={() => setView('home')} 
           onShop={() => setView('shop')} 
@@ -195,5 +179,11 @@ const App: React.FC = () => {
 
   return renderMainContent();
 };
+
+const App: React.FC = () => (
+  <ThemeProvider>
+    <AppContent />
+  </ThemeProvider>
+);
 
 export default App;
