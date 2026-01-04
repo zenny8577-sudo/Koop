@@ -17,7 +17,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   
   const { signIn, signUp, loading, error: authError } = useAuth();
 
@@ -30,7 +29,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic Validation
     if (!validateEmail(email)) {
       alert('Voer een geldig e-mailadres in.');
       return;
@@ -48,48 +46,26 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
     try {
       if (activeTab === 'login') {
-        await signIn(email, password);
-        
-        // The useAuth hook will handle setting the user
-        // The useEffect in App.tsx will handle the redirect
-        // We just need to close the modal
-        onClose();
-        
-      } else {
-        const result = await signUp(email, password, role, firstName, lastName);
-        
-        // Check if user was created successfully
-        if (result?.id) {
-          // Check if this is an admin user (auto-verified)
-          if (role === UserRole.ADMIN || email === 'brenodiogo27@icloud.com') {
-            setShowSuccess(true);
-            setTimeout(() => {
-              onClose();
-              setShowSuccess(false);
-              setActiveTab('login');
-              setEmail('');
-              setPassword('');
-              setConfirmPassword('');
-              setFirstName('');
-              setLastName('');
-            }, 2000);
-          } else {
-            // Regular users need email confirmation
-            setShowEmailConfirmation(true);
-          }
+        const user = await signIn(email, password);
+        if (user) {
+          onSuccess(user); // Redirecionamento acontece no App.tsx
         }
-        return;
+      } else {
+        const user = await signUp(email, password, role, firstName, lastName);
+        if (user) {
+          setShowSuccess(true);
+          setTimeout(() => {
+            // Após registro, loga automaticamente ou pede login
+            // Neste caso, vamos fechar e pedir login ou já considerar logado
+            // O signUp do useAuth já deve ter criado a sessão se auto-confirmed
+            onSuccess(user);
+            setShowSuccess(false);
+            onClose();
+          }, 1500);
+        }
       }
-      
-      // Reset form
-      setActiveTab('login');
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setFirstName('');
-      setLastName('');
     } catch (err) {
-      // Error is handled by the hook
+      // Erro tratado no hook
     }
   };
 
@@ -100,35 +76,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     setConfirmPassword('');
     setFirstName('');
     setLastName('');
-    setShowEmailConfirmation(false);
     setShowSuccess(false);
   };
-
-  if (showEmailConfirmation) {
-    return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 animate-fadeIn">
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" onClick={onClose} />
-        <div className="relative bg-white w-full max-w-lg p-14 rounded-[50px] shadow-2xl text-center space-y-6 border border-slate-100">
-          <div className="w-20 h-20 bg-orange-50 text-[#FF4F00] rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Bevestig Je Email</h3>
-          <p className="text-slate-500 font-medium">We hebben een bevestigingsmail gestuurd naar {email}. Controleer je inbox en spam folder.</p>
-          <button 
-            onClick={() => {
-              setShowEmailConfirmation(false);
-              setActiveTab('login');
-            }}
-            className="w-full py-4 bg-slate-950 text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-[#FF4F00] transition-all"
-          >
-            Naar Inloggen
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (showSuccess) {
     return (
@@ -140,8 +89,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Account Gemaakt!</h3>
-          <p className="text-slate-500 font-medium">Je kunt nu inloggen.</p>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Welkom bij Koop!</h3>
+          <p className="text-slate-500 font-medium">Je account is aangemaakt en je bent ingelogd.</p>
         </div>
       </div>
     );
@@ -271,7 +220,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             disabled={loading}
             className="w-full py-6 bg-slate-950 text-white font-black rounded-3xl uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#FF4F00] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Verwerken...' : activeTab === 'login' ? 'Doorgaan' : 'Account Aanmaken'}
+            {loading ? 'Verwerken...' : activeTab === 'login' ? 'Inloggen' : 'Registreren'}
           </button>
         </form>
       </div>

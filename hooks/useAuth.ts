@@ -45,11 +45,10 @@ export function useAuth() {
         .single();
 
       if (profileError) {
-        // If profile doesn't exist, create one
+        // Se o perfil não existir, criamos um (fallback de segurança)
         if (profileError.code === 'PGRST116') {
           const { data: authUser } = await supabase.auth.getUser();
           
-          // Check if this is the admin user
           const isAdmin = authUser.user?.email === 'brenodiogo27@icloud.com';
           
           const { data: newProfile, error: createError } = await supabase
@@ -76,7 +75,8 @@ export function useAuth() {
       setUser(profile);
     } catch (err) {
       console.error('Profile load error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load user profile');
+      // Não mostramos erro de perfil pro usuário, apenas logamos
+      // setError('Failed to load user profile'); 
     }
   };
 
@@ -86,59 +86,12 @@ export function useAuth() {
     const cleanEmail = email.trim().toLowerCase();
     
     try {
-      // Regular login for all users
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password
       });
 
-      if (error) {
-        console.log('Login error:', error.message);
-        
-        // If user exists but email not confirmed, handle it
-        if (error.message.includes('Email not confirmed')) {
-          // Check if this is admin user
-          if (cleanEmail === 'brenodiogo27@icloud.com') {
-            // Try to confirm the email using the edge function
-            console.log('Admin user exists but email not confirmed, attempting auto-confirm...');
-            
-            // Using hardcoded URL to ensure connectivity
-            const response = await fetch(
-              'https://pyfgirembpoymascmxxn.supabase.co/functions/v1/auto-confirm-admin',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-                },
-                body: JSON.stringify({ email: cleanEmail, password })
-              }
-            );
-
-            const result = await response.json();
-
-            if (!response.ok) {
-              console.error('Edge function error:', result);
-              throw new Error(result.error || 'Failed to auto-confirm admin');
-            }
-
-            // Set the session manually
-            if (result.session) {
-              const { error: sessionError } = await supabase.auth.setSession(result.session);
-              if (sessionError) throw sessionError;
-            }
-
-            // Load the user profile
-            if (result.user) {
-              await loadUserProfile(result.user.id);
-            }
-
-            return result.user;
-          }
-        }
-        throw error;
-      }
-
+      if (error) throw error;
       if (!data.user) throw new Error('Login failed');
 
       await loadUserProfile(data.user.id);
@@ -146,7 +99,7 @@ export function useAuth() {
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
-      throw err;
+      return null;
     } finally {
       setLoading(false);
     }
@@ -163,7 +116,6 @@ export function useAuth() {
     } catch (err) {
       console.error('Logout error:', err);
       setError(err instanceof Error ? err.message : 'Logout failed');
-      throw err;
     } finally {
       setLoading(false);
     }
@@ -172,10 +124,12 @@ export function useAuth() {
   const signUp = async (email: string, password: string, role: UserRole = UserRole.BUYER, firstName?: string, lastName?: string) => {
     setLoading(true);
     setError(null);
+    const cleanEmail = email.trim().toLowerCase();
     
     try {
+      // O banco de dados agora tem um trigger que auto-confirma o email
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
         options: {
           data: {
@@ -189,7 +143,7 @@ export function useAuth() {
       if (error) throw error;
       if (!data.user) throw new Error('Signup failed');
 
-      // Wait a moment for the trigger to create the profile
+      // Aguarda o trigger de criação de perfil rodar
       await new Promise(resolve => setTimeout(resolve, 1000));
       await loadUserProfile(data.user.id);
       
@@ -197,7 +151,7 @@ export function useAuth() {
     } catch (err) {
       console.error('Signup error:', err);
       setError(err instanceof Error ? err.message : 'Signup failed');
-      throw err;
+      return null;
     } finally {
       setLoading(false);
     }
