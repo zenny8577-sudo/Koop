@@ -29,13 +29,22 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
       alert("Meld je aan om een aankoop te doen.");
       return;
     }
-    // Simplificado para demo: Adiciona ao carrinho e volta
     onAddToCart?.(product);
     alert("Toegevoegd aan winkelwagen!");
   };
 
-  const flags: Record<string, string> = {
-    'NL': '🇳🇱', 'CN': '🇨🇳', 'DE': '🇩🇪', 'US': '🇺🇸', 'IT': '🇮🇹', 'FR': '🇫🇷', 'JP': '🇯🇵', 'KR': '🇰🇷', 'GB': '🇬🇧'
+  // Função inteligente para gerar bandeira de qualquer país automaticamente
+  const getFlagEmoji = (countryCode: string) => {
+    // Se não tiver código ou não for 2 letras, retorna o globo
+    if (!countryCode || countryCode.length !== 2) return '🌍';
+    
+    // Converte as letras do código (ex: "NL") para os símbolos regionais Unicode que formam a bandeira
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+      
+    return String.fromCodePoint(...codePoints);
   };
 
   // Mapeamento robusto para ler tanto camelCase (mock) quanto snake_case (DB)
@@ -95,7 +104,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
             {[
               { label: 'Conditie', val: product.condition.replace('_', ' ') },
               { label: 'Categorie', val: product.category },
-              { label: 'Herkomst', val: `${flags[origin] || '🌍'} ${origin}` },
+              { label: 'Herkomst', val: `${getFlagEmoji(origin)} ${origin.toUpperCase()}` },
               { label: 'Levertijd', val: delivery }
             ].map((item, idx) => (
               <div key={idx} className="p-8 bg-white rounded-[40px] border border-slate-100 shadow-sm">
