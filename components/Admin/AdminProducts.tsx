@@ -14,46 +14,43 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Mapeamento Correto para o Banco de Dados (Snake Case)
+  const mapFormToDb = (formData: any, userId: string) => {
+    return {
+      title: formData.title,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      category: formData.category,
+      subcategory: formData.subcategory || null,
+      condition: formData.condition,
+      image: formData.image,
+      gallery: formData.gallery || [],
+      sku: formData.sku,
+      status: formData.status || ProductStatus.ACTIVE,
+      
+      // Campos Críticos (Snake Case)
+      seller_id: userId, 
+      commission_rate: 0.15,
+      commission_amount: (parseFloat(formData.price) * 0.15),
+      shipping_methods: ['postnl', 'dhl'],
+      origin_country: formData.originCountry || 'NL',
+      estimated_delivery: formData.estimatedDelivery || '1-3 werkdagen',
+      is_3d_model: false,
+      updated_at: new Date().toISOString()
+    };
+  };
+
   const handleCreateOrUpdateProduct = async (formData: any) => {
     setActionLoading(true);
-    console.log("Iniciando salvamento...", formData);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
+      if (!user) throw new Error("Sessie verlopen. Log opnieuw in.");
 
-      if (!userId) throw new Error("Sessie verlopen. Log opnieuw in.");
-
-      // 1. Sanitização e Mapeamento para o Banco (Snake Case)
-      // O banco espera: seller_id, commission_rate, origin_country, etc.
-      const productPayload = {
-        title: formData.title,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        subcategory: formData.subcategory || null,
-        condition: formData.condition,
-        image: formData.image,
-        gallery: formData.gallery || [],
-        sku: formData.sku,
-        status: formData.status || ProductStatus.ACTIVE, // Mantém status ou define ativo
-        
-        // Campos mapeados para snake_case do banco
-        seller_id: userId, 
-        commission_rate: 0.15,
-        commission_amount: (parseFloat(formData.price) * 0.15),
-        shipping_methods: ['postnl', 'dhl'],
-        origin_country: formData.originCountry || 'NL',
-        estimated_delivery: formData.estimatedDelivery || '1-3 werkdagen',
-        is_3d_model: false,
-        updated_at: new Date().toISOString()
-      };
-
+      const productPayload = mapFormToDb(formData, user.id);
       let error;
 
       if (editingProduct && editingProduct.id) {
         // UPDATE
-        console.log("Atualizando produto:", editingProduct.id);
         const { error: updateError } = await supabase
           .from('products')
           .update(productPayload)
@@ -61,7 +58,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
         error = updateError;
       } else {
         // INSERT
-        console.log("Criando novo produto");
         const { error: insertError } = await supabase
           .from('products')
           .insert([{
@@ -71,60 +67,50 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
         error = insertError;
       }
 
-      if (error) {
-        console.error("Supabase Error:", error);
-        throw new Error(error.message);
-      }
+      if (error) throw error;
 
-      alert(editingProduct ? 'Product succesvol bijgewerkt!' : 'Product succesvol aangemaakt!');
       setShowProductForm(false);
       setEditingProduct(null);
-      onRefresh(); // Recarrega a lista
-
+      onRefresh(); // Refresh Data
     } catch (err) {
       console.error("Save Error:", err);
       alert('Fout bij opslaan: ' + (err as Error).message);
     } finally {
-      // GARANTE QUE O LOADING PARE
       setActionLoading(false);
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen?')) return;
+    if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
     
+    // Optimistic Update UI (optional, but good for UX)
+    // Here we wait for DB confirmation to be safe
     try {
-      console.log("Deletando produto:", productId);
+      // 1. Tenta deletar
       const { error } = await supabase.from('products').delete().eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        // Se falhar, verifica se é violação de chave estrangeira (FK)
+        if (error.code === '23503') {
+           throw new Error("Dit product kan niet worden verwijderd omdat het onderdeel is van een lopende bestelling of in een winkelwagen zit. Archiveer het in plaats daarvan.");
+        }
+        throw error;
+      }
 
       onRefresh();
-      alert("Product verwijderd.");
     } catch (err) {
       console.error("Delete Error:", err);
       alert('Kan niet verwijderen: ' + (err as Error).message);
     }
   };
 
-  const handleApproveProduct = async (productId: string) => {
+  const handleStatusChange = async (productId: string, newStatus: ProductStatus) => {
     try {
-      const { error } = await supabase.from('products').update({ status: ProductStatus.ACTIVE }).eq('id', productId);
+      const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
       if (error) throw error;
       onRefresh();
     } catch (e) {
-      alert('Fout bij goedkeuren: ' + (e as Error).message);
-    }
-  };
-
-  const handleRejectProduct = async (productId: string) => {
-    if (!confirm('Product afwijzen?')) return;
-    try {
-      const { error } = await supabase.from('products').update({ status: ProductStatus.REJECTED }).eq('id', productId);
-      if (error) throw error;
-      onRefresh();
-    } catch (e) {
-      alert('Fout bij afwijzen: ' + (e as Error).message);
+      alert('Update mislukt: ' + (e as Error).message);
     }
   };
 
@@ -168,10 +154,12 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                 <tr key={p.id} className="hover:bg-slate-50/50">
                   <td className="px-8 py-4">
                     <div className="flex items-center gap-4">
-                      <img src={p.image || 'https://via.placeholder.com/50'} className="w-10 h-10 rounded-lg object-cover bg-slate-100" onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/50?text=Err'} />
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                         <img src={p.image} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/50'} />
+                      </div>
                       <div>
                         <span className="text-xs font-bold text-slate-900 line-clamp-1 max-w-[200px]">{p.title}</span>
-                        <span className="text-[9px] text-slate-400">{p.id.substring(0,8)}...</span>
+                        <span className="text-[9px] text-slate-400 font-mono">{p.sku || p.id.substring(0,8)}</span>
                       </div>
                     </div>
                   </td>
@@ -185,13 +173,13 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                     <div className="flex justify-end gap-2">
                       {p.status === ProductStatus.PENDING_APPROVAL && (
                         <>
-                          <button onClick={() => handleApproveProduct(p.id)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">Goedkeuren</button>
-                          <button onClick={() => handleRejectProduct(p.id)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">Afwijzen</button>
+                          <button onClick={() => handleStatusChange(p.id, ProductStatus.ACTIVE)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">Goedkeuren</button>
+                          <button onClick={() => handleStatusChange(p.id, ProductStatus.REJECTED)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">Afwijzen</button>
                         </>
                       )}
-                      <button onClick={() => { setEditingProduct(p); setShowProductForm(true); }} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold uppercase">Bewerken</button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase p-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      <button onClick={() => { setEditingProduct(p); setShowProductForm(true); }} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold uppercase p-2">Bewerken</button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase p-2 group" title="Verwijderen">
+                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
                   </td>
