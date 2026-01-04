@@ -14,24 +14,25 @@ serve(async (req) => {
     const { url, apiKey } = await req.json()
     
     if (!url || !url.startsWith('http')) {
-      throw new Error('Ongeldige URL.')
+      throw new Error('Ongeldige URL. Zorg ervoor dat deze begint met http:// of https://')
     }
 
     console.log(`Processing URL: ${url}`)
 
-    // 1. Fetch the HTML
+    // 1. Fetch the HTML with robust headers to avoid blocking
     let html = ''
     try {
       const pageResponse = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
         }
       })
-      if (!pageResponse.ok) throw new Error('Kan pagina niet laden');
+      if (!pageResponse.ok) throw new Error(`HTTP error! status: ${pageResponse.status}`);
       html = await pageResponse.text()
     } catch (e) {
-      throw new Error(`Fetch error: ${e.message}`)
+      throw new Error(`Kan pagina niet openen: ${e.message}`)
     }
 
     let productData = {
@@ -43,17 +44,44 @@ serve(async (req) => {
       category: 'Overig'
     };
 
-    // 2. AI Extraction (If API Key is provided - PREFERRED)
+    // Helper to find meta tags regex
+    const getMeta = (prop: string) => {
+      // Matches <meta property="og:title" content="..."> or <meta name="..." ...>
+      // Handles both single and double quotes
+      const match = html.match(new RegExp(`<meta\\s+(?:property|name)=["']${prop}["']\\s+content=["']([^"']*)["']`, 'i'))
+      return match ? match[1] : null
+    }
+
+    // 2. OpenGraph / Meta Data Extraction (Reliable Baseline)
+    productData.title = getMeta('og:title') || getMeta('twitter:title') || '';
+    productData.image = getMeta('og:image') || getMeta('twitter:image') || '';
+    productData.description = getMeta('og:description') || getMeta('twitter:description') || '';
+    
+    // Clean title (remove site name often found after | or -)
+    if (productData.title) {
+        productData.title = productData.title.split('|')[0].split(' - ')[0].trim();
+        // Decode common HTML entities
+        productData.title = productData.title.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    }
+
+    // Try to find price in metas
+    const priceMeta = getMeta('product:price:amount') || getMeta('price') || getMeta('og:price:amount');
+    if (priceMeta) {
+        const p = parseFloat(priceMeta.replace(',', '.'));
+        if (!isNaN(p)) productData.price = p;
+    }
+
+    // 3. AI Enhancement (Optional but preferred for details)
     if (apiKey) {
       try {
-        console.log('Using AI extraction...');
-        // Strip scripts and styles to reduce token usage and noise
+        // Strip heavy tags to save tokens
         const cleanText = html
           .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
           .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-          .replace(/<[^>]+>/g, ' ') // Remove html tags
-          .replace(/\s+/g, ' ') // Normalize whitespace
-          .substring(0, 15000); // Limit context
+          .replace(/<!--[\s\S]*?-->/g, "")
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .substring(0, 12000); // 12k chars context limit
 
         const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -62,15 +90,15 @@ serve(async (req) => {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            "model": "openai/gpt-3.5-turbo", // Cost effective fast model, or use a free one via OpenRouter
+            "model": "openai/gpt-3.5-turbo",
             "messages": [
               {
                 "role": "system",
-                "content": "You are a product scraper. Extract JSON data from the provided website text. Return ONLY raw JSON with keys: title (clean, no store names), price (number only), description (short summary), image (url), category (one of: Elektronica, Design, Fietsen, Vintage Mode, Kunst & Antiek, Gadgets)."
+                "content": "Extract JSON product data. Keys: title, price (number), description, category (Elektronica, Design, Fietsen, Vintage Mode, Kunst & Antiek, Gadgets). If not found, use reasonable defaults."
               },
               {
                 "role": "user",
-                "content": `Extract product info from this text: ${cleanText}`
+                "content": `Extract from: ${cleanText}`
               }
             ]
           })
@@ -78,126 +106,50 @@ serve(async (req) => {
 
         if (aiResponse.ok) {
           const aiJson = await aiResponse.json();
-          const content = aiJson.choices[0]?.message?.content;
-          // Try to parse the JSON from the AI response
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            productData = { ...productData, ...parsed };
-            // Ensure gallery has at least the main image
-            if (productData.image) productData.gallery = [productData.image];
+          const content = aiJson.choices?.[0]?.message?.content;
+          if (content) {
+             const jsonMatch = content.match(/\{[\s\S]*\}/);
+             if (jsonMatch) {
+               const parsed = JSON.parse(jsonMatch[0]);
+               // Only override if AI found something better/valid
+               if (parsed.title && parsed.title.length > productData.title.length) productData.title = parsed.title;
+               if (parsed.price && typeof parsed.price === 'number') productData.price = parsed.price;
+               if (parsed.description) productData.description = parsed.description;
+               if (parsed.category) productData.category = parsed.category;
+             }
           }
         }
-      } catch (aiError) {
-        console.error("AI Extraction failed, falling back to manual", aiError);
+      } catch (e) {
+        console.warn("AI extraction skipped:", e);
       }
     }
 
-    // 3. Manual Fallback (Regex/JSON-LD) - If AI failed or no key
-    if (!productData.title || !productData.price) {
-      console.log('Using manual scraping fallback...');
-      
-      // JSON-LD Extraction
-      const jsonLdMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)
-      if (jsonLdMatches) {
-        for (const match of jsonLdMatches) {
-          try {
-            const content = match.replace(/<script type="application\/ld\+json">|<\/script>/g, '')
-            const parsed = JSON.parse(content)
-            const product = Array.isArray(parsed) ? parsed.find(i => i['@type'] === 'Product') : (parsed['@type'] === 'Product' ? parsed : null)
-            
-            if (product) {
-              productData.title = product.name;
-              productData.description = product.description;
-              // Handle Image
-              if (Array.isArray(product.image)) {
-                 productData.image = typeof product.image[0] === 'string' ? product.image[0] : product.image[0]?.url;
-              } else if (typeof product.image === 'string') {
-                 productData.image = product.image;
-              } else if (product.image?.url) {
-                 productData.image = product.image.url;
-              }
-              // Handle Price
-              const offer = Array.isArray(product.offers) ? product.offers[0] : product.offers;
-              if (offer) {
-                productData.price = parseFloat(offer.price);
-              }
-              break;
-            }
-          } catch (e) { continue }
-        }
-      }
-
-      // Meta Tags Fallback
-      const getMeta = (prop: string) => {
-        const match = html.match(new RegExp(`<meta property="${prop}" content="([^"]*)"`, 'i')) ||
-                      html.match(new RegExp(`<meta name="${prop}" content="([^"]*)"`, 'i'))
-        return match ? match[1] : null
-      }
-
-      if (!productData.title) productData.title = getMeta('og:title') || '';
-      if (!productData.image) productData.image = getMeta('og:image') || '';
-      if (!productData.description) productData.description = getMeta('og:description') || '';
-      
-      // Price Regex fallback (last resort)
-      if (!productData.price) {
-        // Look for price meta
-        const priceMeta = getMeta('product:price:amount');
-        if (priceMeta) {
-          productData.price = parseFloat(priceMeta);
-        } else {
-          // Regex for currency: € 1.200,00 or €1200.00
-          const priceMatch = html.match(/[€$£]\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/);
-          if (priceMatch) {
-            // Normalize European format (1.200,00) to JS format (1200.00)
-            let priceStr = priceMatch[1];
-            if (priceStr.includes(',') && priceStr.includes('.')) {
-               // Assuming . is thousand and , is decimal if comma is last
-               if (priceStr.lastIndexOf(',') > priceStr.lastIndexOf('.')) {
-                 priceStr = priceStr.replace(/\./g, '').replace(',', '.');
-               }
-            } else if (priceStr.includes(',')) {
-               priceStr = priceStr.replace(',', '.');
-            }
-            productData.price = parseFloat(priceStr);
-          }
-        }
-      }
+    // 4. Fallback for Title
+    if (!productData.title) {
+        const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+        if (titleMatch) productData.title = titleMatch[1].trim();
+        else productData.title = "Geïmporteerd Item";
     }
 
-    // 4. CLEANUP & NORMALIZATION
-    // Clean Title (Remove " | StoreName", " - Site", etc.)
-    if (productData.title) {
-      productData.title = productData.title.split('|')[0].split(' - ')[0].trim();
-      // Decode HTML entities in title
-      productData.title = productData.title.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    } else {
-      productData.title = "Naamloos Product";
-    }
-
-    // Fallback Price
-    if (!productData.price || isNaN(productData.price)) {
-      productData.price = 50.00; // Safe fallback
-    }
-
-    // Ensure Image
+    // 5. Fallback for Image
     if (!productData.image) {
-      productData.image = "https://via.placeholder.com/800x800?text=No+Image";
-    }
-    
-    // Setup Gallery
-    if (!productData.gallery || productData.gallery.length === 0) {
-      productData.gallery = [productData.image];
+       // Try to find first generic jpg/png in html
+       const imgMatch = html.match(/https?:\/\/[^\s"']+\.(?:jpg|jpeg|png|webp)/i);
+       if (imgMatch) productData.image = imgMatch[0];
+       else productData.image = "https://via.placeholder.com/800x800?text=No+Image";
     }
 
-    console.log("Final Extracted Data:", productData);
+    // 6. Ensure Gallery
+    productData.gallery = [productData.image];
+
+    // 7. Ensure Price
+    if (!productData.price) productData.price = 0;
 
     return new Response(JSON.stringify(productData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error("Clone error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

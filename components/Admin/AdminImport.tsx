@@ -25,15 +25,14 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
     }
     
     setIsImporting(true);
-    setStatusMsg('Analyseren van doelwit...');
+    setStatusMsg('Verbinding maken met server...');
 
     try {
+      // 1. Check User Session
       const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-      
-      if (!userId) throw new Error("Je moet ingelogd zijn om te importeren.");
+      if (!user) throw new Error("Je sessie is verlopen. Log opnieuw in.");
 
-      // 1. Call Edge Function (Scraper/AI)
+      // 2. Call Edge Function
       const { data: aiProduct, error: fnError } = await supabase.functions.invoke('clone-product', {
         body: { 
           url: importUrl,
@@ -43,47 +42,53 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
 
       if (fnError) {
         console.error("Edge Function Error:", fnError);
-        throw new Error('De importserver reageert niet. Controleer de link.');
+        throw new Error(`Server fout: ${fnError.message || 'Controleer of de URL bereikbaar is.'}`);
       }
 
       if (!aiProduct || aiProduct.error) {
-        throw new Error(aiProduct?.error || 'Geen productgegevens gevonden op deze pagina.');
+        throw new Error(aiProduct?.error || 'Geen gegevens gevonden op deze pagina.');
       }
 
-      setStatusMsg('Gegevens verwerken...');
+      setStatusMsg('Gegevens opslaan...');
 
-      // 2. Data Transformation & Cleanup
-      const basePrice = typeof aiProduct.price === 'number' ? aiProduct.price : parseFloat(aiProduct.price) || 0;
-      // Default to 50 if price parsing fails completely
-      const safePrice = basePrice > 0 ? basePrice : 50; 
-      const finalPrice = safePrice * (1 + (priceMarkup / 100));
+      // 3. Safe Parsing & Calculation
+      // Ensure price is a clean number
+      let rawPrice = 0;
+      if (typeof aiProduct.price === 'number') rawPrice = aiProduct.price;
+      else if (typeof aiProduct.price === 'string') rawPrice = parseFloat(aiProduct.price) || 0;
+      
+      // Default to 50 if extraction failed
+      const basePrice = rawPrice > 0 ? rawPrice : 50; 
+      const finalPrice = basePrice * (1 + (priceMarkup / 100));
 
-      // 3. Construct DB Payload (Strict Snake Case Schema)
+      // 4. Construct Strict DB Payload (Snake Case)
       const newProductPayload = {
-        title: aiProduct.title || "Geïmporteerd Product",
-        description: aiProduct.description || `Geïmporteerd van: ${importUrl}`,
+        title: aiProduct.title || "Naamloos Product",
+        description: aiProduct.description || `Geïmporteerd van ${importUrl}`,
         price: parseFloat(finalPrice.toFixed(2)),
-        category: aiProduct.category || 'Overig',
+        // Fallback to 'Elektronica' if category is missing or invalid
+        category: aiProduct.category || 'Elektronica',
         condition: ProductCondition.NEW,
-        image: aiProduct.image || 'https://via.placeholder.com/800x800?text=No+Image',
-        gallery: aiProduct.gallery || [aiProduct.image],
-        seller_id: userId,
+        image: aiProduct.image || 'https://via.placeholder.com/800',
+        gallery: aiProduct.gallery && aiProduct.gallery.length ? aiProduct.gallery : [aiProduct.image || 'https://via.placeholder.com/800'],
+        seller_id: user.id,
         status: ProductStatus.ACTIVE,
         sku: `IMP-${Date.now().toString().slice(-6)}`,
         
-        // Database Mappings
+        // Required columns with defaults
         commission_rate: 0.15,
-        commission_amount: parseFloat(finalPrice.toFixed(2)) * 0.15,
+        commission_amount: parseFloat((finalPrice * 0.15).toFixed(2)),
         shipping_methods: ['postnl'],
         origin_country: 'CN', 
         estimated_delivery: '7-14 dagen',
         is_3d_model: false,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      console.log("Importing Payload:", newProductPayload);
+      console.log("Saving Product:", newProductPayload);
 
-      // 4. Insert into Database
+      // 5. Insert into Database
       const { error: dbError } = await supabase.from('products').insert([newProductPayload]);
       
       if (dbError) {
@@ -91,10 +96,11 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
         throw new Error(`Database fout: ${dbError.message}`);
       }
 
-      setStatusMsg('Succes!');
+      // Success
+      setStatusMsg('Klaar!');
       onImportSuccess();
       setImportUrl('');
-      alert(`"${newProductPayload.title}" is succesvol toegevoegd aan de catalogus.`);
+      alert(`"${newProductPayload.title}" is succesvol toegevoegd!`);
 
     } catch (err) {
       console.error(err);
