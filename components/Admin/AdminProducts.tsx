@@ -14,7 +14,12 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Mapeamento Correto para o Banco de Dados (Snake Case)
+  // Helper para verificar se é um UUID válido do Postgres
+  const isValidUUID = (id: string) => {
+    const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return regex.test(id);
+  };
+
   const mapFormToDb = (formData: any, userId: string) => {
     return {
       title: formData.title,
@@ -28,7 +33,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       sku: formData.sku,
       status: formData.status || ProductStatus.ACTIVE,
       
-      // Campos Críticos (Snake Case)
+      // Campos Críticos
       seller_id: userId, 
       commission_rate: 0.15,
       commission_amount: (parseFloat(formData.price) * 0.15),
@@ -49,15 +54,18 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       const productPayload = mapFormToDb(formData, user.id);
       let error;
 
-      if (editingProduct && editingProduct.id) {
-        // UPDATE
+      // LÓGICA DE CORREÇÃO UUID:
+      // Se tivermos um produto editando E ele tiver um UUID válido (produto real do banco) -> UPDATE
+      // Se o ID for inválido (ex: "p-rolex", "mock-1") -> INSERT (Cria novo produto real baseado no mock)
+      if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
+        // UPDATE REAL PRODUCT
         const { error: updateError } = await supabase
           .from('products')
           .update(productPayload)
           .eq('id', editingProduct.id);
         error = updateError;
       } else {
-        // INSERT
+        // INSERT NEW PRODUCT (ou Migrar Mock para Real)
         const { error: insertError } = await supabase
           .from('products')
           .insert([{
@@ -65,34 +73,52 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
             created_at: new Date().toISOString()
           }]);
         error = insertError;
+        
+        if (!error && editingProduct) {
+           console.log("Mock product migrated to real DB successfully.");
+        }
       }
 
       if (error) throw error;
 
       setShowProductForm(false);
       setEditingProduct(null);
-      onRefresh(); // Refresh Data
+      onRefresh(); // Recarrega a lista
+      
+      // Feedback amigável
+      if (editingProduct && !isValidUUID(editingProduct.id)) {
+        alert('Dit demoproduct is nu opgeslagen als een echt product in uw database!');
+      }
+
     } catch (err) {
       console.error("Save Error:", err);
-      alert('Fout bij opslaan: ' + (err as Error).message);
+      // Tratamento específico para o erro de UUID caso passe algo despercebido
+      if ((err as any).message?.includes('invalid input syntax for type uuid')) {
+         alert('Systeemfout: Probeer het product opnieuw aan te maken in plaats van te bewerken.');
+      } else {
+         alert('Fout bij opslaan: ' + (err as Error).message);
+      }
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+    if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen?')) return;
     
-    // Optimistic Update UI (optional, but good for UX)
-    // Here we wait for DB confirmation to be safe
+    // Se for mock (ID inválido), apenas atualizamos a UI (simulação)
+    if (!isValidUUID(productId)) {
+       alert("Demoproduct verwijderd uit weergave (wordt gereset bij herladen).");
+       onRefresh(); 
+       return;
+    }
+
     try {
-      // 1. Tenta deletar
       const { error } = await supabase.from('products').delete().eq('id', productId);
 
       if (error) {
-        // Se falhar, verifica se é violação de chave estrangeira (FK)
         if (error.code === '23503') {
-           throw new Error("Dit product kan niet worden verwijderd omdat het onderdeel is van een lopende bestelling of in een winkelwagen zit. Archiveer het in plaats daarvan.");
+           throw new Error("Dit product zit in een bestelling en kan niet worden verwijderd. Zet de status op 'Gearchiveerd'.");
         }
         throw error;
       }
@@ -105,6 +131,12 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   };
 
   const handleStatusChange = async (productId: string, newStatus: ProductStatus) => {
+    // Não podemos atualizar status de mocks no banco
+    if (!isValidUUID(productId)) {
+       alert("Dit is een demoproduct. Sla het eerst op (Bewerken -> Opslaan) om de status te wijzigen.");
+       return;
+    }
+
     try {
       const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
       if (error) throw error;
@@ -154,12 +186,15 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                 <tr key={p.id} className="hover:bg-slate-50/50">
                   <td className="px-8 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
                          <img src={p.image} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/50'} />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-900 line-clamp-1 max-w-[200px]">{p.title}</span>
-                        <span className="text-[9px] text-slate-400 font-mono">{p.sku || p.id.substring(0,8)}</span>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[9px] text-slate-400 font-mono">{p.sku || p.id.substring(0,8)}</span>
+                           {!isValidUUID(p.id) && <span className="text-[8px] bg-slate-100 text-slate-500 px-1 rounded font-bold">DEMO</span>}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -171,7 +206,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                   </td>
                   <td className="px-8 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {p.status === ProductStatus.PENDING_APPROVAL && (
+                      {p.status === ProductStatus.PENDING_APPROVAL && isValidUUID(p.id) && (
                         <>
                           <button onClick={() => handleStatusChange(p.id, ProductStatus.ACTIVE)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">Goedkeuren</button>
                           <button onClick={() => handleStatusChange(p.id, ProductStatus.REJECTED)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">Afwijzen</button>
