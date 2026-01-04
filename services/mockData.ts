@@ -47,7 +47,6 @@ export const generateMockProducts = (count: number): Product[] => {
       weight: Math.random() * 5,
       size: 'Standard',
       shippingMethods: ['postnl', 'dhl'],
-      internalNote: 'Checked and verified',
       is3DModel: false
     };
 
