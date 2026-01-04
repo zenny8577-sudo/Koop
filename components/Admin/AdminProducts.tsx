@@ -54,9 +54,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       const productPayload = mapFormToDb(formData, user.id);
       let error;
 
-      // LÓGICA DE CORREÇÃO UUID:
-      // Se tivermos um produto editando E ele tiver um UUID válido (produto real do banco) -> UPDATE
-      // Se o ID for inválido (ex: "p-rolex", "mock-1") -> INSERT (Cria novo produto real baseado no mock)
       if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
         // UPDATE REAL PRODUCT
         const { error: updateError } = await supabase
@@ -73,26 +70,16 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
             created_at: new Date().toISOString()
           }]);
         error = insertError;
-        
-        if (!error && editingProduct) {
-           console.log("Mock product migrated to real DB successfully.");
-        }
       }
 
       if (error) throw error;
 
       setShowProductForm(false);
       setEditingProduct(null);
-      onRefresh(); // Recarrega a lista
-      
-      // Feedback amigável
-      if (editingProduct && !isValidUUID(editingProduct.id)) {
-        alert('Dit demoproduct is nu opgeslagen als een echt product in uw database!');
-      }
+      onRefresh(); 
 
     } catch (err) {
       console.error("Save Error:", err);
-      // Tratamento específico para o erro de UUID caso passe algo despercebido
       if ((err as any).message?.includes('invalid input syntax for type uuid')) {
          alert('Systeemfout: Probeer het product opnieuw aan te maken in plaats van te bewerken.');
       } else {
@@ -106,9 +93,8 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen?')) return;
     
-    // Se for mock (ID inválido), apenas atualizamos a UI (simulação)
     if (!isValidUUID(productId)) {
-       alert("Demoproduct verwijderd uit weergave (wordt gereset bij herladen).");
+       // Apenas atualiza a UI removendo visualmente se for demo
        onRefresh(); 
        return;
     }
@@ -131,18 +117,61 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   };
 
   const handleStatusChange = async (productId: string, newStatus: ProductStatus) => {
-    // Não podemos atualizar status de mocks no banco
-    if (!isValidUUID(productId)) {
-       alert("Dit is een demoproduct. Sla het eerst op (Bewerken -> Opslaan) om de status te wijzigen.");
-       return;
+    // 1. Se for produto REAL, atualiza status normalmente
+    if (isValidUUID(productId)) {
+      try {
+        const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
+        if (error) throw error;
+        onRefresh();
+      } catch (e) {
+        alert('Update mislukt: ' + (e as Error).message);
+      }
+      return;
     }
 
+    // 2. Se for DEMO, cria ele no banco com o status novo (Migração Automática)
+    const productToMigrate = products.find(p => p.id === productId);
+    if (!productToMigrate) return;
+
+    // Feedback visual rápido
+    if (!confirm(`Dit demo-item opslaan in de database als ${newStatus}?`)) return;
+
     try {
-      const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+          alert("Log in om wijzigingen op te slaan.");
+          return;
+      }
+
+      const newProductPayload = {
+        title: productToMigrate.title,
+        description: productToMigrate.description,
+        price: productToMigrate.price,
+        category: productToMigrate.category,
+        condition: productToMigrate.condition,
+        image: productToMigrate.image,
+        gallery: productToMigrate.gallery || [],
+        sku: productToMigrate.sku,
+        status: newStatus, // AQUI aplicamos o status do botão (ACTIVE ou REJECTED)
+        
+        seller_id: user.id, // Assume o admin atual como dono na migração
+        commission_rate: 0.15,
+        commission_amount: (productToMigrate.price * 0.15),
+        shipping_methods: ['postnl'],
+        origin_country: 'NL',
+        estimated_delivery: '1-3 werkdagen',
+        is_3d_model: false,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('products').insert([newProductPayload]);
       if (error) throw error;
+
       onRefresh();
+      // Não precisa de alert de sucesso, a atualização da tabela é o feedback
+
     } catch (e) {
-      alert('Update mislukt: ' + (e as Error).message);
+      alert('Fout bij migreren: ' + (e as Error).message);
     }
   };
 
@@ -206,13 +235,13 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                   </td>
                   <td className="px-8 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {p.status === ProductStatus.PENDING_APPROVAL && isValidUUID(p.id) && (
+                      {p.status === ProductStatus.PENDING_APPROVAL && (
                         <>
-                          <button onClick={() => handleStatusChange(p.id, ProductStatus.ACTIVE)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">Goedkeuren</button>
-                          <button onClick={() => handleStatusChange(p.id, ProductStatus.REJECTED)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">Afwijzen</button>
+                          <button onClick={() => handleStatusChange(p.id, ProductStatus.ACTIVE)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">APROVAR</button>
+                          <button onClick={() => handleStatusChange(p.id, ProductStatus.REJECTED)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">REJEITAR</button>
                         </>
                       )}
-                      <button onClick={() => { setEditingProduct(p); setShowProductForm(true); }} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold uppercase p-2">Bewerken</button>
+                      <button onClick={() => { setEditingProduct(p); setShowProductForm(true); }} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold uppercase p-2">EDITAR</button>
                       <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase p-2 group" title="Verwijderen">
                         <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
