@@ -44,30 +44,16 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // AUTOMATIC REDIRECT LOGIC
-  // Este efeito garante que assim que o usuário for carregado, ele seja levado ao painel correto.
-  useEffect(() => {
-    if (user && !authLoading) {
-      // Se estiver na home e logar, redireciona.
-      // Se já estiver em uma rota específica (ex: checkout), mantém.
-      if (view === 'home' || view === 'sell') {
-        const targetView = getDashboardView(user.role);
-        console.log('Auto-redirecting user to:', targetView);
-        setView(targetView);
-      }
-    }
-  }, [user, authLoading]);
-
   // Função robusta para determinar dashboard
   const getDashboardView = (role: UserRole | string): ViewState => {
-    const normalizedRole = role?.toUpperCase();
+    const normalizedRole = role?.toUpperCase() || 'BUYER';
     console.log('Calculating dashboard for role:', normalizedRole);
     
     if (normalizedRole === 'ADMIN') return 'admin';
     if (normalizedRole === 'SELLER') return 'seller-dashboard';
     if (normalizedRole === 'BUYER') return 'buyer-dashboard';
     
-    return 'home'; // Fallback
+    return 'home';
   };
 
   const handleAddToCart = (product: Product) => {
@@ -98,21 +84,23 @@ const App: React.FC = () => {
     try {
       await clearCart();
       setView('success');
-      AnalyticsService.trackEvent('checkout_completed', {
-        items_count: cart.length,
-        total_amount: cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0),
-        paymentMethod: paymentMethod
-      });
     } catch (error) {
       console.error('Checkout completion error:', error);
     }
   };
 
+  // --- CORREÇÃO CRÍTICA AQUI ---
   const handleLoginSuccess = async (loggedInUser: User) => {
-    console.log('Login success callback triggered for:', loggedInUser.email);
+    console.log('LOGIN SUCCESS! FORCE REDIRECT FOR:', loggedInUser);
+    
+    // Fechar modal imediatamente
     setIsLoginOpen(false);
-    // O useEffect acima cuidará do redirecionamento, mas forçamos aqui também para garantir resposta instantânea da UI
+    
+    // Calcular view alvo
     const targetView = getDashboardView(loggedInUser.role);
+    console.log('TARGET VIEW:', targetView);
+    
+    // Forçar atualização de estado
     setView(targetView);
   };
 
@@ -120,7 +108,6 @@ const App: React.FC = () => {
     try {
       await signOut();
       setView('home');
-      AnalyticsService.trackEvent('user_logout');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -129,10 +116,6 @@ const App: React.FC = () => {
   const navigateToDetail = (product: Product) => {
     setSelectedProduct(product);
     setView('detail');
-    AnalyticsService.trackEvent('product_view', {
-      productId: product.id,
-      category: product.category
-    });
   };
 
   const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
@@ -158,6 +141,7 @@ const App: React.FC = () => {
     );
   }
 
+  // Se o view for checkout, renderiza direto
   if (view === 'checkout') {
     return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
   }
