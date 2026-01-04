@@ -85,44 +85,41 @@ export function useAuth() {
     setError(null);
     
     try {
-      // Special handling for admin credentials
+      // Special handling for admin credentials - use auto-confirm function
       if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
-        // Try to sign in with Supabase first
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
-        if (error) {
-          // If user doesn't exist in Supabase, create it
-          if (error.message.includes('Invalid login credentials')) {
-            console.log('Admin user not found in Supabase, creating...');
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  first_name: 'Breno',
-                  last_name: 'Diogo',
-                  role: UserRole.ADMIN
-                }
-              }
-            });
-
-            if (signUpError) throw signUpError;
-            if (!signUpData.user) throw new Error('Signup failed');
-
-            // Wait for trigger to create profile
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await loadUserProfile(signUpData.user.id);
-            return signUpData.user;
+        console.log('Admin login detected, using auto-confirm function...');
+        
+        // Call the edge function to auto-confirm and create user
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-confirm-admin`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({ email, password })
           }
-          throw error;
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to auto-confirm admin');
         }
 
-        if (!data.user) throw new Error('Login failed');
-        await loadUserProfile(data.user.id);
-        return data.user;
+        // Set the session manually
+        if (result.session) {
+          await supabase.auth.setSession(result.session);
+        }
+
+        // Load the user profile
+        if (result.user) {
+          await loadUserProfile(result.user.id);
+        }
+
+        return result.user;
       }
 
       // Regular login for other users

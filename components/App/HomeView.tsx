@@ -39,6 +39,39 @@ const HomeView: React.FC<HomeViewProps> = ({
     'Gadgets': 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?auto=format&fit=crop&q=80&w=1200'
   };
 
+  const handleAdminAutoConfirm = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-confirm-admin`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ 
+            email: 'brenodiogo27@icloud.com', 
+            password: '19011995Breno@#' 
+          })
+        }
+      );
+
+      const result = await response.json();
+      console.log('Auto-confirm result:', result);
+      
+      if (response.ok) {
+        alert('Admin auto-confirmed successfully! Check console for details.');
+        onNavigate('admin');
+      } else {
+        alert('Auto-confirm failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Auto-confirm error:', error);
+      alert('Error: ' + error.message);
+    }
+  };
+
   return (
     <div className="space-y-40 pb-60 animate-fadeIn overflow-hidden">
       {/* Hero Section */}
@@ -61,6 +94,10 @@ const HomeView: React.FC<HomeViewProps> = ({
                 Admin Dashboard
               </button>
             )}
+            {/* Admin Auto-Confirm Button - Remove after testing */}
+            <button onClick={handleAdminAutoConfirm} className="px-16 py-8 bg-blue-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-blue-700 transition-all">
+              Auto-Confirm Admin
+            </button>
           </div>
         </div>
       </section>
