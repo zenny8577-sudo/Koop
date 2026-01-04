@@ -34,9 +34,31 @@ const App: React.FC = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
-  // Load mock products
+  // Carregamento Híbrido: Supabase + Mock Fallback
   useEffect(() => {
-    setProductsData({ data: mockProducts, total: mockProducts.length });
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('status', 'ACTIVE'); // Carrega apenas produtos ativos para a loja
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          console.log("✅ Produtos carregados do Supabase:", data.length);
+          setProductsData({ data, total: data.length });
+        } else {
+          console.log("⚠️ Nenhum produto no Supabase. Usando Mock Data.");
+          setProductsData({ data: mockProducts, total: mockProducts.length });
+        }
+      } catch (err) {
+        console.error("❌ Erro ao carregar produtos. Usando Mock Data.", err);
+        setProductsData({ data: mockProducts, total: mockProducts.length });
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   // Track page views
@@ -48,7 +70,6 @@ const App: React.FC = () => {
   // Lógica Central de Roteamento
   const getDashboardView = (role: string | undefined): ViewState => {
     const r = (role || 'BUYER').toUpperCase();
-    console.log(`🧭 Routing Decision for Role: ${r}`);
     if (r === 'ADMIN') return 'admin';
     if (r === 'SELLER') return 'seller-dashboard';
     return 'buyer-dashboard';
@@ -57,11 +78,10 @@ const App: React.FC = () => {
   // Redirecionamento Automático (Estado Inicial / Refresh)
   useEffect(() => {
     if (!authLoading && user) {
-      // Só redireciona se estiver em páginas "neutras"
       if (['home', 'sell', 'about', 'contact'].includes(view)) {
-        const target = getDashboardView(user.role);
-        console.log(`🔄 Auto-Redirecting to ${target}`);
-        setView(target);
+        // Opcional: Redirecionar para dashboard ao logar
+        // const target = getDashboardView(user.role);
+        // setView(target);
       }
     }
   }, [user, authLoading]);
@@ -90,12 +110,9 @@ const App: React.FC = () => {
     setView('success');
   };
 
-  // --- O PULO DO GATO: REDIRECIONAMENTO EXPLÍCITO ---
   const handleLoginSuccess = (loggedInUser: User) => {
     console.log('🚀 Login Success Triggered. User:', loggedInUser);
     setIsLoginOpen(false);
-    
-    // Força a atualização da view imediatamente
     const nextView = getDashboardView(loggedInUser.role);
     setView(nextView);
   };
@@ -122,7 +139,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Renderização Condicional Limpa
   const renderMainContent = () => {
     if (view === 'checkout') return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
     if (view === 'success') return <SuccessView onNavigate={(v) => setView(v as ViewState)} />;
@@ -162,7 +178,7 @@ const App: React.FC = () => {
         
         <main className="min-h-screen">
           {view === 'home' && <HomeView products={productsData.data} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onNavigate={(v) => setView(v as ViewState)} />}
-          {view === 'shop' && <ShopView products={productsData.data} filters={filters} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onFilterChange={setFilters} onResetFilters={resetFilters} onRemoveFilter={removeFilter} />}
+          {view === 'shop' && <ShopView products={productsData.data} filters={filters} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onFilterChange={setFilters} onResetFilters={() => setFilters({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' })} onRemoveFilter={(key) => setFilters({...filters, [key]: ''})} />}
           {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
           {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
           {view === 'seller-dashboard' && user && <UserDashboard user={user} />}

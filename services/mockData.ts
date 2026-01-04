@@ -1,5 +1,4 @@
-import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review, VerificationResult } from '../types';
-import { ProductVerificationService } from './verificationService';
+import { Product, ProductStatus, ProductCondition, UserRole, User, Transaction, Review } from '../types';
 
 export const currentUser: User = {
   id: 'user_123',
@@ -8,66 +7,128 @@ export const currentUser: User = {
   stripeAccountId: 'acct_123456789'
 };
 
-const categories = ['Elektronica', 'Design', 'Fietsen', 'Antiek', 'Gadgets'];
-const conditions = [ProductCondition.NEW, ProductCondition.LIKE_NEW, ProductCondition.GOOD, ProductCondition.FAIR];
-const electronicsTitles = ['iPhone 15 Pro', 'MacBook Air M3', 'Sony WH-1000XM5', 'iPad Pro 12.9', 'DJI Mavic 3', 'Samsung S24 Ultra', 'Sonos Era 300', 'Apple Watch Ultra 2', 'Nintendo Switch OLED', 'GoPro Hero 12'];
-const designTitles = ['Eames Chair', 'Herman Miller Aeron', 'Kartell Bourgie Lamp', 'Hay Magis Stool', 'Vitrine Cabinet', 'Vintage Berber Rug'];
-const images = [
-  'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&q=80&w=800',
-  'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&q=80&w=800',
-  'https://images.timeout.com/images/105315082/750/422/image.jpg',
-  'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=800'
-];
-
 export const generateMockProducts = (count: number): Product[] => {
-  const products: Product[] = [];
-  for (let i = 1; i <= count; i++) {
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    const condition = conditions[Math.floor(Math.random() * conditions.length)];
-    const titlePool = category === 'Elektronica' ? electronicsTitles : designTitles;
-    const title = `${titlePool[Math.floor(Math.random() * titlePool.length)]} #${i}`;
-    const price = Math.floor(Math.random() * 2000) + 50;
-
-    const product: Product = {
-      id: `p-${i}`,
-      sellerId: i % 5 === 0 ? 'user_123' : `user_${i}`,
-      title,
-      description: `Premium quality item in ${condition} condition. Full check performed by our Dutch experts. Ready for shipping. This is a highly sought after item from a reliable source.`,
-      price,
-      condition,
-      status: i > 95 ? ProductStatus.SOLD : ProductStatus.ACTIVE,
-      category,
-      image: images[i % images.length],
-      commissionRate: price > 1000 ? 0.08 : 0.15,
-      commissionAmount: price * (price > 1000 ? 0.08 : 0.15),
-      sku: `KOOP-TECH-${1000 + i}`,
-      barcode: `87123456${1000 + i}`,
-      weight: Math.random() * 5,
-      size: 'Standard',
+  // Produtos realistas fixos para garantir que a loja pareça bonita
+  const fixedProducts: Product[] = [
+    {
+      id: 'p-iphone-15',
+      sellerId: 'user_123',
+      title: 'iPhone 15 Pro Max - 256GB Titanium',
+      description: 'In absolute nieuwstaat. Batterijconditie 100%. Inclusief originele doos en ongebruikte kabel. Geverifieerd door Koop experts.',
+      price: 1150,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Elektronica',
+      image: 'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 138,
+      sku: 'APL-15PM-TI',
+      barcode: '194253000000',
+      weight: 0.22,
       shippingMethods: ['postnl', 'dhl'],
-      is3DModel: false
-    };
-
-    // Pre-verify some products to show the badge
-    if (i % 3 === 0) {
-      // Mock verification result
-      product.verification = {
-        authenticity: { passed: true, message: 'Authenticity verified', details: 'Brand and model confirmed' },
-        condition: { passed: true, message: 'Condition verified', details: 'Matches description' },
-        priceFairness: { passed: true, message: 'Price fair', details: 'Within market range' },
-        legalCompliance: { passed: true, message: 'Compliant', details: 'Meets Dutch standards' },
-        overallPassed: true,
-        verifiedAt: new Date().toISOString()
-      };
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'p-eames-chair',
+      sellerId: 'user_456',
+      title: 'Herman Miller Eames Lounge Chair',
+      description: 'Originele Vitra uitvoering. Walnoot hout met zwart premium leer. Een tijdloze klassieker in uitstekende vintage staat.',
+      price: 4800,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Design',
+      image: 'https://images.unsplash.com/photo-1560184897-ae75f418493e?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.08,
+      commissionAmount: 384,
+      sku: 'HM-EAMES-01',
+      barcode: '',
+      weight: 30,
+      shippingMethods: ['dhl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString()
+    },
+    {
+      id: 'p-vanmoof',
+      sellerId: 'user_789',
+      title: 'VanMoof S3 - Dark',
+      description: 'Perfect werkende S3. Firmware geupdate, inclusief Find My tracking. Lichte gebruikssporen op het frame, technisch 100%.',
+      price: 1450,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Fietsen',
+      image: 'https://images.unsplash.com/photo-1534149693998-0c36b442146f?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 174,
+      sku: 'VM-S3-BLK',
+      barcode: '',
+      weight: 19,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 172800000).toISOString()
+    },
+    {
+      id: 'p-rolex',
+      sellerId: 'user_123',
+      title: 'Rolex Submariner Date',
+      description: 'Model 16610. Jaar 2008. Full set met doos en papieren. Recent geserviced. Geverifieerd op echtheid.',
+      price: 9200,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Antiek',
+      image: 'https://images.unsplash.com/photo-1523170335258-f5ed11844a49?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.08,
+      commissionAmount: 736,
+      sku: 'RLX-SUB-08',
+      barcode: '',
+      weight: 0.5,
+      shippingMethods: ['fedex'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 250000000).toISOString()
+    },
+    {
+      id: 'p-macbook',
+      sellerId: 'user_999',
+      title: 'MacBook Pro 14" M3 Max',
+      description: 'Space Black, 1TB SSD, 36GB RAM. Gesealde doos, nooit geopend. Factuur aanwezig.',
+      price: 3100,
+      condition: ProductCondition.NEW,
+      status: ProductStatus.PENDING_APPROVAL,
+      category: 'Elektronica',
+      image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 372,
+      sku: 'APL-MBP-M3',
+      barcode: '',
+      weight: 1.6,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'p-lamp',
+      sellerId: 'user_456',
+      title: 'Flos Arco Vloerlamp',
+      description: 'Iconisch design. Marmeren voet is onbeschadigd. Boog is perfect verstelbaar.',
+      price: 1800,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Design',
+      image: 'https://images.unsplash.com/photo-1513506003011-38f45e86c437?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 216,
+      sku: 'FLS-ARCO',
+      barcode: '',
+      weight: 65,
+      shippingMethods: ['dhl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
     }
+  ];
 
-    products.push(product);
-  }
-  return products;
+  return fixedProducts;
 };
 
-export const mockProducts: Product[] = generateMockProducts(100);
+export const mockProducts: Product[] = generateMockProducts(6);
 export const mockTransactions: Transaction[] = [];
 export const mockReviews: Review[] = [];
