@@ -32,38 +32,63 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-    // Check if user exists in auth.users
-    const { data: { user: existingAuthUser }, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email)
-
+    // Check if user exists by trying to sign in first
     let userId: string
 
-    if (getUserError || !existingAuthUser) {
-      // User doesn't exist, create it
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: email,
-        password: password,
-        email_confirmed: true, // Auto-confirm email
-        user_metadata: {
-          first_name: 'Breno',
-          last_name: 'Diogo',
-          role: 'ADMIN'
+    try {
+      // Try to sign in to check if user exists
+      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (signInError) {
+        // If user doesn't exist, create it
+        if (signInError.message.includes('Invalid login credentials')) {
+          console.log('User does not exist, creating...')
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: email,
+            password: password,
+            email_confirmed: true,
+            user_metadata: {
+              first_name: 'Breno',
+              last_name: 'Diogo',
+              role: 'ADMIN'
+            }
+          })
+
+          if (authError) throw authError
+          userId = authData.user.id
+        } else if (signInError.message.includes('Email not confirmed')) {
+          console.log('User exists but email not confirmed, confirming email...')
+          // Get user by email using the auth admin API
+          const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+          
+          if (listError) throw listError
+          
+          const targetUser = users.find(u => u.email === email)
+          
+          if (!targetUser) {
+            throw new Error('User not found in list')
+          }
+
+          userId = targetUser.id
+
+          // Confirm the email
+          const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            email_confirmed: true
+          })
+
+          if (updateError) throw updateError
+        } else {
+          throw signInError
         }
-      })
-
-      if (authError) throw authError
-      userId = authData.user.id
-    } else {
-      // User exists, confirm email if not confirmed
-      userId = existingAuthUser.id
-
-      // Update user to confirm email
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        email_confirmed: true
-      })
-
-      if (updateError && !updateError.message.includes('already confirmed')) {
-        throw updateError
+      } else {
+        // User exists and can sign in
+        userId = signInData.user.id
       }
+    } catch (error) {
+      throw error
     }
 
     // Create or update profile in public.users with verified status

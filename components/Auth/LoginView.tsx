@@ -18,7 +18,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [adminAutoConfirm, setAdminAutoConfirm] = useState(false);
+  const [adminProcessing, setAdminProcessing] = useState(false);
   
   const { signIn, signUp, loading, error: authError } = useAuth();
 
@@ -51,7 +51,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       if (activeTab === 'login') {
         // Check if this is admin scenario
         if (email === 'brenodiogo27@icloud.com') {
-          setAdminAutoConfirm(true);
+          setAdminProcessing(true);
         }
         
         await signIn(email, password);
@@ -62,7 +62,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         onClose();
         
         // Reset state
-        setAdminAutoConfirm(false);
+        setAdminProcessing(false);
       } else {
         const result = await signUp(email, password, role, firstName, lastName);
         
@@ -110,7 +110,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     setLastName('');
     setShowEmailConfirmation(false);
     setShowSuccess(false);
-    setAdminAutoConfirm(false);
+    setAdminProcessing(false);
   };
 
   if (showEmailConfirmation) {
@@ -197,7 +197,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
           </div>
         )}
 
-        {adminAutoConfirm && (
+        {adminProcessing && (
           <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-slideIn">
             <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
