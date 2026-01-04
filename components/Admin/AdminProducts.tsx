@@ -21,7 +21,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   };
 
   const mapFormToDb = (formData: any, userId: string) => {
-    // Tratamento robusto de preço (remove símbolos, espaços e converte vírgula)
+    // Tratamento robusto de preço
     let cleanPrice = formData.price.toString().replace(/[^0-9.,]/g, '').replace(',', '.');
     const price = parseFloat(cleanPrice) || 0;
 
@@ -33,11 +33,10 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       subcategory: formData.subcategory || null,
       condition: formData.condition,
       image: formData.image,
-      gallery: formData.gallery || [],
+      // Garante que gallery é sempre um array de strings limpo
+      gallery: Array.isArray(formData.gallery) ? formData.gallery : [],
       sku: formData.sku,
       status: formData.status || ProductStatus.ACTIVE,
-      
-      // Sobrescreve seller_id com o usuário atual para garantir que a RLS de INSERT funcione
       seller_id: userId, 
       commission_rate: 0.15,
       commission_amount: (price * 0.15),
@@ -52,7 +51,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   const handleCreateOrUpdateProduct = async (formData: any) => {
     setActionLoading(true);
     
-    // Timeout de segurança: se o banco demorar mais de 10s, destrava a UI
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error("Time-out: Server reageerde niet. Controleer uw verbinding.")), 10000)
     );
@@ -63,20 +61,16 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
 
       const productPayload = mapFormToDb(formData, user.id);
       
-      // Operação de Banco de Dados
       const dbOperation = async () => {
         let error;
         
-        // Se tem ID válido, é UPDATE. Se não (ou é ID 'demo'), é INSERT.
         if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
-          console.log("Updating Existing Product:", editingProduct.id);
           const { error: updateError } = await supabase
             .from('products')
             .update(productPayload)
             .eq('id', editingProduct.id);
           error = updateError;
         } else {
-          console.log("Creating New Product (or Migrating Demo)");
           const { error: insertError } = await supabase
             .from('products')
             .insert([{
@@ -90,10 +84,8 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
         return true;
       };
 
-      // Executa DB com Timeout (Race)
       await Promise.race([dbOperation(), timeoutPromise]);
 
-      // Sucesso
       setShowProductForm(false);
       setEditingProduct(null);
       await onRefresh(); 
@@ -102,9 +94,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
     } catch (err) {
       console.error("Save Error:", err);
       let msg = (err as Error).message;
-      if (msg?.includes('invalid input syntax')) msg = 'Ongeldige gegevensindeling (controleer prijs/tekst).';
-      if (msg?.includes('row-level security')) msg = 'Geen rechten: Uw account is geen Admin in de database.';
-      
+      if (msg?.includes('invalid input syntax')) msg = 'Ongeldige gegevensindeling.';
       alert('Fout bij opslaan: ' + msg);
     } finally {
       setActionLoading(false);
@@ -115,7 +105,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
     if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen?')) return;
     
     if (!isValidUUID(productId)) {
-       onRefresh(); // Apenas remove visualmente se for demo
+       onRefresh();
        return;
     }
 
@@ -126,21 +116,6 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
     } catch (err) {
       alert('Kan niet verwijderen: ' + (err as Error).message);
     }
-  };
-
-  const handleStatusChange = async (productId: string, newStatus: ProductStatus) => {
-    // Se for real, update simples
-    if (isValidUUID(productId)) {
-      try {
-        const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
-        if (error) throw error;
-        onRefresh();
-      } catch (e) { alert('Fout: ' + (e as Error).message); }
-      return;
-    }
-    
-    // Se for demo, não faz nada (ou poderia migrar, mas vamos manter simples)
-    alert("Dit is een demo-item. Bewerk het en sla het op om het permanent te maken.");
   };
 
   if (showProductForm) {

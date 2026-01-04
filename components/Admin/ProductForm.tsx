@@ -38,7 +38,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
 
-  // Sincroniza subcategorias
   useEffect(() => {
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
       const validSubs = CATEGORY_MAP[formData.category] || [];
@@ -84,13 +83,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       alert('Upload mislukt. Controleer uw verbinding en bestandsgrootte.');
     } finally {
       setIsUploading(false);
-      if (e.target) e.target.value = ''; // Reset input
+      if (e.target) e.target.value = '';
     }
   };
 
-  const handleAddGalleryUrl = () => {
-    if (!galleryUrlInput) return;
-    setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), galleryUrlInput] }));
+  const handleAddGalleryUrl = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault(); // Impede submit do form
+    
+    if (!galleryUrlInput || galleryUrlInput.trim().length < 5) return;
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      gallery: [...(prev.gallery || []), galleryUrlInput.trim()] 
+    }));
     setGalleryUrlInput('');
   };
 
@@ -112,7 +117,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         return;
       }
 
-      const finalImage = formData.image || 'https://via.placeholder.com/800?text=No+Image';
+      // Sanitização da galeria: Remove duplicatas e strings vazias
+      const cleanGallery = [...new Set((formData.gallery || [])
+        .map((url: string) => url?.trim())
+        .filter((url: string) => url && url.length > 5))];
+
+      const finalImage = formData.image || (cleanGallery.length > 0 ? cleanGallery[0] : 'https://via.placeholder.com/800?text=No+Image');
 
       await onSubmit({
         ...formData,
@@ -120,7 +130,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         sku: formData.sku || `SKU-${Date.now()}`,
         status: ProductStatus.ACTIVE,
         image: finalImage,
-        gallery: formData.gallery || [],
+        gallery: cleanGallery,
         originCountry: formData.originCountry,
         estimatedDelivery: formData.estimatedDelivery
       });
@@ -259,7 +269,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Media</h3>
         
         <div className="space-y-4">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding (Cover)</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding</label>
           <div className="flex gap-4 items-center">
               <div className="flex-1 relative group">
                   <input 
@@ -270,7 +280,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
                   <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20`}>
-                      {isUploading ? 'Bezig met uploaden...' : formData.image ? 'Klik om cover te wijzigen' : 'Upload Coverfoto'}
+                      {isUploading ? 'Bezig met uploaden...' : formData.image ? 'Klik om te wijzigen' : 'Upload Coverfoto'}
                   </div>
               </div>
               {formData.image && (
@@ -293,15 +303,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
            <div className="flex flex-col gap-4">
               <div className="flex gap-2">
                   <input 
-                      placeholder="Galerij URL toevoegen..." 
+                      placeholder="Plak URL en druk op +" 
                       value={galleryUrlInput}
                       onChange={e => setGalleryUrlInput(e.target.value)}
                       className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddGalleryUrl())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddGalleryUrl();
+                        }
+                      }}
                   />
                   <button 
                       type="button"
-                      onClick={handleAddGalleryUrl}
+                      onClick={(e) => handleAddGalleryUrl(e)}
                       className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
                   >
                       +
@@ -325,14 +340,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
            </div>
 
            {formData.gallery && formData.gallery.length > 0 && (
-             <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px] pt-2">
+             <div className="flex gap-4 overflow-x-auto pb-4 pt-2">
                {formData.gallery.map((url: string, i: number) => (
-                 <div key={i} className="relative w-20 h-20 shrink-0 group">
-                   <img src={url} className="w-full h-full object-cover rounded-xl border border-slate-100" />
+                 <div key={i} className="relative w-24 h-24 shrink-0 group">
+                   <img src={url} className="w-full h-full object-cover rounded-xl border border-slate-100 bg-white" />
                    <button 
                      type="button"
                      onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }))}
-                     className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                     className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md opacity-100 hover:bg-rose-600 transition-all cursor-pointer z-10"
                    >
                      ×
                    </button>
