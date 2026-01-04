@@ -1,4 +1,4 @@
-import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review } from '../types';
+import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review, VerificationResult } from '../types';
 import { ProductVerificationService } from './verificationService';
 
 export const currentUser: User = {
@@ -47,12 +47,21 @@ export const generateMockProducts = (count: number): Product[] => {
       weight: Math.random() * 5,
       size: 'Standard',
       shippingMethods: ['postnl', 'dhl'],
-      internalNote: 'Checked and verified'
+      internalNote: 'Checked and verified',
+      is3DModel: false
     };
 
     // Pre-verify some products to show the badge
     if (i % 3 === 0) {
-      product.verification = ProductVerificationService.verify(product);
+      // Mock verification result
+      product.verification = {
+        authenticity: { passed: true, message: 'Authenticity verified', details: 'Brand and model confirmed' },
+        condition: { passed: true, message: 'Condition verified', details: 'Matches description' },
+        priceFairness: { passed: true, message: 'Price fair', details: 'Within market range' },
+        legalCompliance: { passed: true, message: 'Compliant', details: 'Meets Dutch standards' },
+        overallPassed: true,
+        verifiedAt: new Date().toISOString()
+      };
     }
 
     products.push(product);

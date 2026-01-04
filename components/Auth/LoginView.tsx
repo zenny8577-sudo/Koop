@@ -56,23 +56,25 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
       } else {
         const result = await signUp(email, password, role, firstName, lastName);
         
-        // Check if email confirmation is required
-        if (result?.user?.aud === 'authenticated') {
-          // User is already authenticated (admin bypass)
-          setShowSuccess(true);
-          setTimeout(() => {
-            onClose();
-            setShowSuccess(false);
-            setActiveTab('login');
-            setEmail('');
-            setPassword('');
-            setConfirmPassword('');
-            setFirstName('');
-            setLastName('');
-          }, 2000);
-        } else {
-          // Email confirmation required
-          setShowEmailConfirmation(true);
+        // Check if user was created successfully
+        if (result?.id) {
+          // Check if this is an admin user (auto-verified)
+          if (role === UserRole.ADMIN || email === 'brenodiogo27@icloud.com') {
+            setShowSuccess(true);
+            setTimeout(() => {
+              onClose();
+              setShowSuccess(false);
+              setActiveTab('login');
+              setEmail('');
+              setPassword('');
+              setConfirmPassword('');
+              setFirstName('');
+              setLastName('');
+            }, 2000);
+          } else {
+            // Regular users need email confirmation
+            setShowEmailConfirmation(true);
+          }
         }
         return;
       }

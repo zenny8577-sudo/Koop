@@ -1,4 +1,4 @@
-import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review, VerificationResult, VerificationCheck } from '../types';
+import { Product, Transaction, ProductStatus, ProductCondition, UserRole, User, Review, VerificationResult, VerificationCheck, UserAddress } from '../types';
 import { ProductVerificationService } from './verificationService';
 
 class DatabaseService {
@@ -61,7 +61,15 @@ class DatabaseService {
       };
 
       if (i % 3 === 0) {
-        product.verification = ProductVerificationService.verify(product);
+        // Mock verification result
+        product.verification = {
+          authenticity: { passed: true, message: 'Authenticity verified', details: 'Brand and model confirmed' },
+          condition: { passed: true, message: 'Condition verified', details: 'Matches description' },
+          priceFairness: { passed: true, message: 'Price fair', details: 'Within market range' },
+          legalCompliance: { passed: true, message: 'Compliant', details: 'Meets Dutch standards' },
+          overallPassed: true,
+          verifiedAt: new Date().toISOString()
+        };
       }
 
       products.push(product);
@@ -271,7 +279,8 @@ class DatabaseService {
 
     const newAddress: UserAddress = {
       id: `addr-${Date.now()}`,
-      ...address
+      ...address,
+      isDefault: (user.addresses.length || 0) === 0
     };
 
     user.addresses.push(newAddress);

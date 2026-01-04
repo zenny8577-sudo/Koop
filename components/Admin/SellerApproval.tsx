@@ -1,6 +1,11 @@
+import React from 'react';
 import { User } from '../../types';
 
-const SellerApproval: React.FC<{ sellers: User[] }> = ({ sellers }) => {
+interface SellerApprovalProps {
+  sellers: User[];
+}
+
+const SellerApproval: React.FC<SellerApprovalProps> = ({ sellers }) => {
   return (
     <div className="bg-white rounded-xl p-6 shadow">
       <h3 className="text-xl font-bold mb-4">Aprovação de Sellers</h3>
@@ -18,3 +23,5 @@ const SellerApproval: React.FC<{ sellers: User[] }> = ({ sellers }) => {
     </div>
   );
 };
+
+export default SellerApproval;
