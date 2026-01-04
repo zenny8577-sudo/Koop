@@ -39,6 +39,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   
   const [keepOpen, setKeepOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [galleryUrlInput, setGalleryUrlInput] = useState('');
 
   useEffect(() => {
     // Auto-select subcategory if needed
@@ -94,6 +95,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAddGalleryUrl = () => {
+    if (!galleryUrlInput) return;
+    setFormData(prev => ({ ...prev, gallery: [...(prev.gallery || []), galleryUrlInput] }));
+    setGalleryUrlInput('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,60 +249,97 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Media</h3>
         
-        <div className="space-y-2">
+        <div className="space-y-4">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding</label>
-          <div className="flex gap-4 items-center">
-            <div className="flex-1 relative">
-                <input 
-                  type="file"
-                  accept="image/*"
-                  disabled={isUploading}
-                  onChange={(e) => handleImageUpload(e, false)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
-                />
-                <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20">
-                   {isUploading ? (
-                     <div className="flex items-center gap-2 text-[#FF4F00]">
-                       <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                       <span>Uploaden...</span>
-                     </div>
-                   ) : 'Klik om te uploaden of sleep hierheen'}
-                </div>
-            </div>
-            {formData.image ? (
-              <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0 bg-white" alt="Preview" />
-            ) : (
-                <div className="w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300">
-                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </div>
-            )}
+          
+          <div className="flex flex-col gap-4">
+              {/* URL Input */}
+              <input 
+                  placeholder="Plak afbeeldings-URL (https://...)" 
+                  value={formData.image}
+                  onChange={e => setFormData({...formData, image: e.target.value})}
+                  className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
+              />
+              
+              <div className="flex items-center gap-4">
+                  <div className="h-px bg-slate-200 dark:bg-white/10 flex-1" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase">OF UPLOAD</span>
+                  <div className="h-px bg-slate-200 dark:bg-white/10 flex-1" />
+              </div>
+
+              <div className="flex gap-4 items-center">
+                  <div className="flex-1 relative">
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploading}
+                        onChange={(e) => handleImageUpload(e, false)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                      />
+                      <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20">
+                         {isUploading ? (
+                           <div className="flex items-center gap-2 text-[#FF4F00]">
+                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                             <span>Uploaden...</span>
+                           </div>
+                         ) : 'Klik om te uploaden'}
+                      </div>
+                  </div>
+                  {formData.image && (
+                    <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0 bg-white" alt="Preview" onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'} />
+                  )}
+              </div>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
            <div className="flex justify-between items-center">
              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Galerij ({formData.gallery?.length || 0})</label>
-             <div className="relative">
-                <input 
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  disabled={isUploading}
-                  onChange={(e) => handleImageUpload(e, true)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <span className={`text-[10px] font-black uppercase text-purple-600 hover:underline cursor-pointer ${isUploading ? 'opacity-50' : ''}`}>+ Toevoegen</span>
-             </div>
            </div>
+           
+           <div className="flex flex-col gap-4">
+              {/* Gallery URL Input */}
+              <div className="flex gap-2">
+                  <input 
+                      placeholder="Galerij afbeeldings-URL toevoegen..." 
+                      value={galleryUrlInput}
+                      onChange={e => setGalleryUrlInput(e.target.value)}
+                      className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddGalleryUrl())}
+                  />
+                  <button 
+                      type="button"
+                      onClick={handleAddGalleryUrl}
+                      className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
+                  >
+                      +
+                  </button>
+              </div>
+
+              <div className="relative">
+                  <input 
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={isUploading}
+                      onChange={(e) => handleImageUpload(e, true)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="w-full bg-white dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl px-6 py-3 text-xs font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all">
+                      Of upload meerdere afbeeldingen tegelijk
+                  </div>
+              </div>
+           </div>
+
            {formData.gallery && formData.gallery.length > 0 && (
-             <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px]">
+             <div className="flex gap-4 overflow-x-auto pb-2 min-h-[90px] pt-2">
                {formData.gallery.map((url: string, i: number) => (
-                 <div key={i} className="relative w-20 h-20 shrink-0">
-                   <img src={url} className="w-full h-full object-cover rounded-xl" />
+                 <div key={i} className="relative w-20 h-20 shrink-0 group">
+                   <img src={url} className="w-full h-full object-cover rounded-xl border border-slate-100" />
                    <button 
                      type="button"
                      onClick={() => setFormData(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }))}
-                     className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md"
+                     className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center text-xs shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                    >
                      ×
                    </button>
