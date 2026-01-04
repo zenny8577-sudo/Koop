@@ -12,21 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json()
-    const openRouterKey = Deno.env.get('OPENROUTER_API_KEY')
+    const { url, apiKey } = await req.json()
+    
+    // Tenta usar a chave enviada pelo painel, senão tenta a variável de ambiente
+    const openRouterKey = apiKey || Deno.env.get('OPENROUTER_API_KEY')
 
     if (!openRouterKey) {
-      throw new Error('OPENROUTER_API_KEY is not configured in Supabase Secrets.')
+      throw new Error('OpenRouter API Key ontbreekt. Configureer deze in het admin paneel.')
     }
 
     if (!url) {
-      throw new Error('URL is required.')
+      throw new Error('URL is verplicht.')
     }
 
     console.log(`Cloning product from: ${url}`)
 
-    // Chamada para a IA (OpenRouter)
-    // Usando o modelo gratuito do Google (Gemini 2.0 Flash) que é excelente para extração
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -62,10 +62,15 @@ serve(async (req) => {
     if (!response.ok) {
       const err = await response.text();
       console.error("OpenRouter Error:", err);
-      throw new Error('Failed to connect to AI Service');
+      throw new Error('Fout bij verbinden met AI Service');
     }
 
     const aiData = await response.json()
+    
+    if (!aiData.choices || !aiData.choices[0]) {
+       throw new Error('Geen geldig antwoord van AI.');
+    }
+
     let content = aiData.choices[0].message.content
 
     // Limpeza básica caso a IA retorne markdown
