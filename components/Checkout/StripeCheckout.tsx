@@ -52,7 +52,16 @@ const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onEr
 
     setLoading(true);
 
+    // 1. Trigger validation first (Required for iDEAL and modern payment methods)
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      onError(submitError.message || "Controleer uw invoer.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // 2. Confirm payment
       const { error } = await stripe.confirmPayment({
         elements,
         clientSecret,
