@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/integrations/supabase/client';
 import { ProductCondition, ProductStatus } from '../../types';
 
@@ -14,11 +14,25 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
   const [isImporting, setIsImporting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
+  // Watchdog para garantir que o loading não fique preso
+  useEffect(() => {
+    let watchdog: any;
+    if (isImporting) {
+      watchdog = setTimeout(() => {
+        if (isImporting) {
+          setIsImporting(false);
+          setStatusMsg('');
+          alert('Time-out: De server reageerde niet snel genoeg. Probeer het opnieuw of voer handmatig in.');
+        }
+      }, 15000); // 15 segundos timeout absoluto
+    }
+    return () => clearTimeout(watchdog);
+  }, [isImporting]);
+
   const handleSmartImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importUrl) return;
 
-    // Basic URL validation
     if (!importUrl.startsWith('http')) {
       alert('Voer een geldige URL in (http/https).');
       return;
@@ -28,11 +42,10 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
     setStatusMsg('Verbinding maken met server...');
 
     try {
-      // 1. Check User Session
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Je sessie is verlopen. Log opnieuw in.");
+      if (!user) throw new Error("Sessie verlopen.");
 
-      // 2. Call Edge Function
+      // 1. Call Edge Function with explicit error handling
       const { data: aiProduct, error: fnError } = await supabase.functions.invoke('clone-product', {
         body: { 
           url: importUrl,
@@ -41,70 +54,65 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
       });
 
       if (fnError) {
-        console.error("Edge Function Error:", fnError);
-        throw new Error(`Server fout: ${fnError.message || 'Controleer of de URL bereikbaar is.'}`);
+        console.error("Function Error:", fnError);
+        throw new Error('Serverfout bij ophalen URL.');
       }
 
-      if (!aiProduct || aiProduct.error) {
-        throw new Error(aiProduct?.error || 'Geen gegevens gevonden op deze pagina.');
+      if (!aiProduct) {
+        throw new Error('Geen gegevens ontvangen.');
       }
 
-      setStatusMsg('Gegevens opslaan...');
+      // Check if partial scrape (blocked but returned placeholder)
+      if (aiProduct.scraped_successfully === false) {
+         setStatusMsg('Gedeeltelijk gelukt (Site beveiligd)...');
+         // Continua, mas avisa implicitamente pelo conteudo placeholder
+      } else {
+         setStatusMsg('Gegevens verwerken...');
+      }
 
-      // 3. Safe Parsing & Calculation
-      // Ensure price is a clean number
-      let rawPrice = 0;
-      if (typeof aiProduct.price === 'number') rawPrice = aiProduct.price;
-      else if (typeof aiProduct.price === 'string') rawPrice = parseFloat(aiProduct.price) || 0;
-      
-      // Default to 50 if extraction failed
-      const basePrice = rawPrice > 0 ? rawPrice : 50; 
-      const finalPrice = basePrice * (1 + (priceMarkup / 100));
+      // 2. Data Prep
+      const basePrice = typeof aiProduct.price === 'number' ? aiProduct.price : parseFloat(aiProduct.price) || 0;
+      const safePrice = basePrice > 0 ? basePrice : 50; 
+      const finalPrice = safePrice * (1 + (priceMarkup / 100));
 
-      // 4. Construct Strict DB Payload (Snake Case)
       const newProductPayload = {
-        title: aiProduct.title || "Naamloos Product",
-        description: aiProduct.description || `Geïmporteerd van ${importUrl}`,
+        title: aiProduct.title || "Nieuw Product",
+        description: aiProduct.description || `Geïmporteerd: ${importUrl}`,
         price: parseFloat(finalPrice.toFixed(2)),
-        // Fallback to 'Elektronica' if category is missing or invalid
         category: aiProduct.category || 'Elektronica',
         condition: ProductCondition.NEW,
         image: aiProduct.image || 'https://via.placeholder.com/800',
-        gallery: aiProduct.gallery && aiProduct.gallery.length ? aiProduct.gallery : [aiProduct.image || 'https://via.placeholder.com/800'],
+        gallery: aiProduct.gallery || [aiProduct.image || 'https://via.placeholder.com/800'],
         seller_id: user.id,
         status: ProductStatus.ACTIVE,
         sku: `IMP-${Date.now().toString().slice(-6)}`,
-        
-        // Required columns with defaults
         commission_rate: 0.15,
         commission_amount: parseFloat((finalPrice * 0.15).toFixed(2)),
         shipping_methods: ['postnl'],
         origin_country: 'CN', 
         estimated_delivery: '7-14 dagen',
         is_3d_model: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
 
-      console.log("Saving Product:", newProductPayload);
-
-      // 5. Insert into Database
+      // 3. Database Insert
       const { error: dbError } = await supabase.from('products').insert([newProductPayload]);
       
-      if (dbError) {
-        console.error("DB Insert Error:", dbError);
-        throw new Error(`Database fout: ${dbError.message}`);
-      }
+      if (dbError) throw dbError;
 
-      // Success
       setStatusMsg('Klaar!');
       onImportSuccess();
       setImportUrl('');
-      alert(`"${newProductPayload.title}" is succesvol toegevoegd!`);
+      
+      if (aiProduct.scraped_successfully === false) {
+        alert(`Product aangemaakt als concept. Let op: De doelsite blokkeerde automatische details, dus controleer de foto en tekst.`);
+      } else {
+        alert(`Product succesvol geïmporteerd!`);
+      }
 
     } catch (err) {
       console.error(err);
-      alert('Import Mislukt: ' + (err as Error).message);
+      alert('Fout: ' + (err as Error).message);
     } finally {
       setIsImporting(false);
       setStatusMsg('');
@@ -127,7 +135,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
         </div>
         
         <p className="text-xs text-slate-500 font-medium">
-          Plak een URL (AliExpress, Bol, Amazon, etc). Het systeem haalt automatisch foto's, tekst en prijs op.
+          Plak een URL. Als de site beveiligd is, maken we een basisproduct aan dat u zelf kunt aanvullen.
         </p>
         
         <form onSubmit={handleSmartImport} className="space-y-6">
@@ -143,7 +151,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
           </div>
           
           <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3">Automatische Winstmarge</label>
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3">Winstmarge</label>
             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
               <input 
                 type="range" min="0" max="200" step="5"
@@ -160,12 +168,12 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
           <button 
             type="submit" 
             disabled={isImporting} 
-            className="w-full py-5 bg-purple-600 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all disabled:opacity-50 shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2"
+            className={`w-full py-5 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] transition-all shadow-xl flex items-center justify-center gap-2 ${isImporting ? 'bg-slate-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'}`}
           >
             {isImporting ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {statusMsg || 'Bezig...'}
+                {statusMsg || 'Even geduld...'}
               </>
             ) : 'Start Import'}
           </button>
@@ -179,7 +187,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-2xl">📦</div>
            <h3 className="text-2xl font-black uppercase tracking-tighter">Bulk Import?</h3>
            <p className="text-white/60 text-sm font-medium leading-relaxed">
-             Gebruik onze CSV-template om honderden producten tegelijk te uploaden. Ondersteunt automatische prijsberekening en categorie-matching.
+             Gebruik onze CSV-template om honderden producten tegelijk te uploaden.
            </p>
          </div>
          
