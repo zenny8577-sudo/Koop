@@ -1,4 +1,3 @@
-Subcategories)">
 import React, { useState } from 'react';
 
 // Initial structure matching the ShopView mapping
