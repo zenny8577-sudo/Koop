@@ -58,7 +58,7 @@ export function useAuth() {
               id: userId,
               email: authUser.user?.email,
               role: isAdmin ? UserRole.ADMIN : UserRole.BUYER,
-              verification_status: 'verified',
+              verification_status: isAdmin ? 'verified' : 'unverified',
               first_name: isAdmin ? 'Breno' : undefined,
               last_name: isAdmin ? 'Diogo' : undefined,
               created_at: new Date().toISOString()
