@@ -18,11 +18,8 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
     e.preventDefault();
     if (!importUrl) return;
     
-    if (!apiKeys.openRouter) {
-      alert('Configureer eerst de OpenRouter API Key in het tabblad "Instellingen".');
-      onRequestSettings();
-      return;
-    }
+    // Não bloqueamos mais se não tiver chave, apenas avisamos ou usamos o modo básico
+    const useAI = !!apiKeys.openRouter;
 
     setIsImporting(true);
 
@@ -30,7 +27,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || 'admin_local';
 
-      // Send the API key explicitly to the Edge Function
+      // Send the API key explicitly to the Edge Function (can be empty string)
       const { data: aiProduct, error: fnError } = await supabase.functions.invoke('clone-product', {
         body: { 
           url: importUrl,
@@ -38,8 +35,8 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
         }
       });
 
-      if (fnError) throw new Error(fnError.message || 'AI Verbinding Mislukt');
-      if (!aiProduct) throw new Error('Geen data ontvangen van AI.');
+      if (fnError) throw new Error(fnError.message || 'Import Verbinding Mislukt');
+      if (!aiProduct) throw new Error('Geen data ontvangen.');
 
       const basePrice = aiProduct.price || 50;
       const finalPrice = basePrice * (1 + (priceMarkup / 100));
@@ -48,9 +45,9 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
         title: aiProduct.title || "Geïmporteerd Item",
         description: aiProduct.description || `Geïmporteerd van: ${importUrl}`,
         price: parseFloat(finalPrice.toFixed(2)),
-        category: aiProduct.category || 'Gadgets',
+        category: aiProduct.category || 'Overig',
         condition: ProductCondition.NEW,
-        image: aiProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
+        image: aiProduct.image || 'https://via.placeholder.com/800x800?text=No+Image',
         seller_id: userId,
         status: ProductStatus.ACTIVE,
         sku: `DROP-${Date.now()}`,
@@ -65,7 +62,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
 
       onImportSuccess();
       setImportUrl('');
-      alert(`Product "${newProduct.title}" succesvol geïmporteerd!`);
+      alert(`Product "${newProduct.title}" succesvol geïmporteerd! ${!useAI ? '(Basis Mode - Geen AI)' : ''}`);
     } catch (err) {
       console.error(err);
       alert('Import Mislukt: ' + (err as Error).message);
@@ -125,11 +122,24 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
       <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="w-8 h-8 flex items-center justify-center bg-purple-50 text-purple-600 rounded-full">⚡</span>
-          <h3 className="text-xl font-black uppercase tracking-tighter">Smart Clone (IA)</h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 flex items-center justify-center bg-purple-50 text-purple-600 rounded-full">⚡</span>
+            <h3 className="text-xl font-black uppercase tracking-tighter">Smart Clone</h3>
+          </div>
+          {apiKeys.openRouter ? (
+             <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 px-2 py-1 rounded uppercase tracking-widest">AI Actief</span>
+          ) : (
+             <span className="text-[9px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase tracking-widest">Basis Mode</span>
+          )}
         </div>
-        <p className="text-xs text-slate-500 font-medium">Plak de link (AliExpress, Temu, Amazon) om te klonen. De AI (Google Gemini via OpenRouter) zal de details ophalen.</p>
+        
+        <p className="text-xs text-slate-500 font-medium">
+          Plak een productlink (AliExpress, Temu, Amazon, etc.). 
+          {apiKeys.openRouter 
+            ? ' De AI zal details, prijs en afbeeldingen intelligent extraheren.' 
+            : ' Het systeem zal proberen basisinformatie te scrapen (Titel, Foto).'}
+        </p>
         
         <form onSubmit={handleSmartImport} className="space-y-4">
           <div>
@@ -156,9 +166,15 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
             </div>
           </div>
 
-          <button disabled={isImporting} className="w-full py-4 bg-purple-600 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all disabled:opacity-50">
-            {isImporting ? 'IA Analyseren & Importeren...' : 'Start Smart Clone'}
+          <button disabled={isImporting} className="w-full py-4 bg-purple-600 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all disabled:opacity-50 shadow-xl shadow-purple-500/20">
+            {isImporting ? 'Analyseren & Importeren...' : apiKeys.openRouter ? 'Start Smart Clone (AI)' : 'Start Basis Import'}
           </button>
+          
+          {!apiKeys.openRouter && (
+            <p className="text-[9px] text-center text-slate-400 cursor-pointer hover:text-purple-600 transition-colors" onClick={onRequestSettings}>
+              Tip: Configureer OpenRouter API voor betere resultaten →
+            </p>
+          )}
         </form>
       </div>
 
@@ -177,7 +193,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
           className="w-full h-40 bg-white/10 border-none rounded-2xl p-4 text-xs font-mono text-white placeholder:text-white/20 focus:ring-2 focus:ring-emerald-500/50 outline-none"
         />
         
-        <button onClick={handleCSVImport} disabled={isImporting} className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-emerald-400 transition-all disabled:opacity-50">
+        <button onClick={handleCSVImport} disabled={isImporting} className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-emerald-400 transition-all disabled:opacity-50 shadow-xl shadow-emerald-500/10">
           {isImporting ? 'Verwerken...' : 'CSV Lijst Verwerken'}
         </button>
       </div>
