@@ -39,12 +39,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return (
       <div 
         onClick={() => onClick?.(product)}
-        className="group relative w-full h-full min-h-[500px] rounded-[48px] overflow-hidden cursor-pointer bg-slate-100 shadow-2xl"
+        className="group relative w-full h-full min-h-[500px] rounded-[48px] overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-900 shadow-2xl"
       >
         <img 
           src={product.image} 
           alt={product.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 dark:opacity-70"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
         
@@ -89,7 +89,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div className="group flex flex-col h-full bg-transparent">
-      <div className="relative aspect-[4/5] bg-slate-50 rounded-[40px] overflow-hidden shadow-sm border border-slate-100/50 transition-all duration-500 hover:shadow-2xl hover:border-slate-200">
+      <div className="relative aspect-[4/5] bg-slate-50 dark:bg-white/5 rounded-[40px] overflow-hidden shadow-sm border border-slate-100/50 dark:border-white/5 transition-all duration-500 hover:shadow-2xl hover:border-slate-200 dark:hover:border-white/20">
         <img 
           src={product.image} 
           alt={product.title}
@@ -100,7 +100,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute top-5 right-5 z-20">
           <button 
             onClick={handleWishlist}
-            className={`w-10 h-10 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-white/30 text-slate-900 hover:bg-white/50'}`}
+            className={`w-10 h-10 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-white/30 dark:bg-black/30 text-slate-900 dark:text-white hover:bg-white/50 dark:hover:bg-black/50'}`}
           >
             <svg className={`w-5 h-5 ${isWishlisted ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -110,13 +110,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
         <div className="absolute top-5 left-5 z-10 flex flex-col gap-2">
           {isVerified && (
-            <div className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-2 border border-white/50">
+            <div className="bg-white/90 dark:bg-black/80 backdrop-blur px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-2 border border-white/50 dark:border-white/10">
               <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
                 <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900">Verified</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Verified</span>
             </div>
           )}
         </div>
@@ -125,13 +125,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-950/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onClick?.(product); }}
-            className="flex-1 py-4 bg-white text-slate-900 font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 hover:text-white transition-all transform active:scale-95"
+            className="flex-1 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-slate-900 transition-all transform active:scale-95"
           >
             Details
           </button>
           <button 
             onClick={handleAddToCartClick}
-            className="w-12 h-12 bg-[#FF4F00] text-white flex items-center justify-center rounded-2xl shadow-xl hover:bg-slate-900 transition-all transform active:scale-95"
+            className="w-12 h-12 bg-[#FF4F00] text-white flex items-center justify-center rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white dark:hover:text-slate-900 transition-all transform active:scale-95"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -144,18 +144,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="space-y-1 group-hover:translate-x-1 transition-transform">
           <h3 
             onClick={() => onClick?.(product)} 
-            className="text-sm font-black text-slate-900 uppercase tracking-tighter cursor-pointer hover:text-[#FF4F00] transition-colors line-clamp-1 pr-4"
+            className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter cursor-pointer hover:text-[#FF4F00] dark:hover:text-[#FF4F00] transition-colors line-clamp-1 pr-4"
           >
             {product.title}
           </h3>
           <div className="flex items-center gap-2">
             <span className="w-1 h-1 bg-[#FF4F00] rounded-full" />
-            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">{product.category}</p>
+            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.2em]">{product.category}</p>
           </div>
         </div>
         <div className="text-right">
-          <span className="text-sm font-black text-slate-900 block">€{product.price.toLocaleString()}</span>
-          <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Incl. VAT</span>
+          <span className="text-sm font-black text-slate-900 dark:text-white block">€{product.price.toLocaleString()}</span>
+          <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">Incl. VAT</span>
         </div>
       </div>
     </div>

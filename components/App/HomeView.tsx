@@ -42,7 +42,7 @@ const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="space-y-40 pb-60 animate-fadeIn overflow-hidden">
       {/* Hero Section */}
-      <section className="relative h-[95vh] flex items-center px-6 lg:px-24 mx-4 lg:mx-12 rounded-[60px] lg:rounded-[120px] overflow-hidden bg-slate-950 mt-8 group">
+      <section className="relative h-[95vh] flex items-center px-6 lg:px-24 mx-4 lg:mx-12 rounded-[60px] lg:rounded-[120px] overflow-hidden bg-slate-950 mt-8 group border border-transparent dark:border-white/5">
         <div className="absolute inset-0 z-0 scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out">
           <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=90&w=2400" className="w-full h-full object-cover opacity-50" alt="Dutch Tech Design" />
           <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-950/20 to-transparent" />
@@ -70,9 +70,9 @@ const HomeView: React.FC<HomeViewProps> = ({
         <div className="flex justify-between items-end mb-12">
           <div className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF4F00]">Vers uit curatie</span>
-            <h2 className="text-4xl lg:text-6xl font-black text-slate-900 tracking-tighter uppercase">Nieuwe Items<span className="text-[#FF4F00]">.</span></h2>
+            <h2 className="text-4xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Nieuwe Items<span className="text-[#FF4F00]">.</span></h2>
           </div>
-          <button onClick={() => onNavigate('shop')} className="hidden md:block text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-[#FF4F00] transition-colors border-b-2 border-slate-100 hover:border-[#FF4F00] pb-2">Bekijk alles →</button>
+          <button onClick={() => onNavigate('shop')} className="hidden md:block text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-[#FF4F00] transition-colors border-b-2 border-slate-100 dark:border-white/10 hover:border-[#FF4F00] pb-2">Bekijk alles →</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           {recentProducts.map(p => (
@@ -94,20 +94,20 @@ const HomeView: React.FC<HomeViewProps> = ({
            <div className="flex justify-between items-end">
               <div className="space-y-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF4F00]">Exclusieve Curatie</span>
-                <h2 className="text-4xl lg:text-6xl font-black text-slate-900 tracking-tighter uppercase">Product Spotlight<span className="text-[#FF4F00]">.</span></h2>
+                <h2 className="text-4xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">Product Spotlight<span className="text-[#FF4F00]">.</span></h2>
               </div>
               <div className="flex gap-3">
                  {spotlightProducts.map((_, i) => (
                    <button
                      key={i}
                      onClick={() => setActiveSpotlight(i)}
-                     className={`h-1.5 transition-all duration-500 rounded-full ${activeSpotlight === i ? 'bg-[#FF4F00] w-12' : 'bg-slate-200 w-4'}`}
+                     className={`h-1.5 transition-all duration-500 rounded-full ${activeSpotlight === i ? 'bg-[#FF4F00] w-12' : 'bg-slate-200 dark:bg-white/10 w-4'}`}
                    />
                  ))}
               </div>
            </div>
 
-           <div className="relative h-[600px] lg:h-[700px] overflow-hidden rounded-[80px] group">
+           <div className="relative h-[600px] lg:h-[700px] overflow-hidden rounded-[80px] group border border-transparent dark:border-white/5">
               {spotlightProducts.map((product, i) => (
                 <div
                   key={product.id}
@@ -132,14 +132,14 @@ const HomeView: React.FC<HomeViewProps> = ({
         <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-20">
           <div className="space-y-4">
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FF4F00]">Navigeer per Stijl</span>
-            <h2 className="text-5xl lg:text-8xl font-black text-slate-900 tracking-tighter uppercase leading-none">Ontdek <br /> Collecties<span className="text-[#FF4F00]">.</span></h2>
+            <h2 className="text-5xl lg:text-8xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Ontdek <br /> Collecties<span className="text-[#FF4F00]">.</span></h2>
           </div>
-          <p className="text-slate-500 font-medium max-w-sm text-lg leading-relaxed">Onze curators hebben de meest exclusieve items voor u geselecteerd, gecategoriseerd op esthetiek en vakmanschap.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm text-lg leading-relaxed">Onze curators hebben de meest exclusieve items voor u geselecteerd, gecategoriseerd op esthetiek en vakmanschap.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[1000px] lg:h-[800px]">
           {/* Tech - Wide */}
-          <div className="md:col-span-8 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { onNavigate('shop'); }}>
+          <div className="md:col-span-8 group relative overflow-hidden rounded-[60px] cursor-pointer border border-transparent dark:border-white/5" onClick={() => { onNavigate('shop'); }}>
             <img src={categoryImages['Elektronica']} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-12 left-12 space-y-2">
@@ -149,7 +149,7 @@ const HomeView: React.FC<HomeViewProps> = ({
           </div>
 
           {/* Design - Tall */}
-          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { onNavigate('shop'); }}>
+          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer border border-transparent dark:border-white/5" onClick={() => { onNavigate('shop'); }}>
             <img src={categoryImages['Design']} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-12 left-12 space-y-2">
@@ -159,7 +159,7 @@ const HomeView: React.FC<HomeViewProps> = ({
           </div>
 
           {/* Bikes - Small */}
-          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { onNavigate('shop'); }}>
+          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer border border-transparent dark:border-white/5" onClick={() => { onNavigate('shop'); }}>
             <img src={categoryImages['Fietsen']} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-12 left-12 space-y-2">
@@ -169,7 +169,7 @@ const HomeView: React.FC<HomeViewProps> = ({
           </div>
 
           {/* Antiek - Large Square-ish */}
-          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer" onClick={() => { onNavigate('shop'); }}>
+          <div className="md:col-span-4 group relative overflow-hidden rounded-[60px] cursor-pointer border border-transparent dark:border-white/5" onClick={() => { onNavigate('shop'); }}>
             <img src={categoryImages['Antiek']} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-12 left-12 space-y-2">
@@ -197,13 +197,13 @@ const HomeView: React.FC<HomeViewProps> = ({
             { title: 'SNELLE LOGISTIEK', desc: 'Verzekerde verzending via PostNL of DHL binnen 48 uur.', icon: '🚚' },
             { title: 'VEILIG BETALEN', desc: 'Gegarandeerde transacties via iDEAL e Stripe Connect.', icon: '💳' }
           ].map((item, i) => (
-            <div key={i} className="flex gap-8 items-center p-12 bg-white rounded-[60px] border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all group">
+            <div key={i} className="flex gap-8 items-center p-12 bg-white dark:bg-slate-900 rounded-[60px] border border-slate-100 dark:border-white/5 shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-none transition-all group">
               <div className="text-4xl grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-110">
                 {item.icon}
               </div>
               <div className="space-y-1.5">
-                <h4 className="text-sm font-black uppercase tracking-[0.15em] text-slate-900 group-hover:text-[#FF4F00] transition-colors">{item.title}</h4>
-                <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-[200px]">{item.desc}</p>
+                <h4 className="text-sm font-black uppercase tracking-[0.15em] text-slate-900 dark:text-white group-hover:text-[#FF4F00] dark:group-hover:text-[#FF4F00] transition-colors">{item.title}</h4>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium leading-relaxed max-w-[200px]">{item.desc}</p>
               </div>
             </div>
           ))}
