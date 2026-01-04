@@ -17,10 +17,14 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
   const handleSmartImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!importUrl) return;
-    
-    // Não bloqueamos mais se não tiver chave, apenas avisamos ou usamos o modo básico
-    const useAI = !!apiKeys.openRouter;
 
+    // Validação de URL
+    if (!importUrl.startsWith('http://') && !importUrl.startsWith('https://')) {
+      alert('Ongeldige link. De URL moet beginnen met http:// of https://\n\n(Invalid URL. Must start with http:// or https://)');
+      return;
+    }
+    
+    const useAI = !!apiKeys.openRouter;
     setIsImporting(true);
 
     try {
@@ -36,7 +40,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
       });
 
       if (fnError) throw new Error(fnError.message || 'Import Verbinding Mislukt');
-      if (!aiProduct) throw new Error('Geen data ontvangen.');
+      if (!aiProduct || aiProduct.error) throw new Error(aiProduct?.error || 'Geen data ontvangen.');
 
       const basePrice = aiProduct.price || 50;
       const finalPrice = basePrice * (1 + (priceMarkup / 100));
@@ -62,7 +66,7 @@ const AdminImport: React.FC<AdminImportProps> = ({ apiKeys, onImportSuccess, onR
 
       onImportSuccess();
       setImportUrl('');
-      alert(`Product "${newProduct.title}" succesvol geïmporteerd! ${!useAI ? '(Basis Mode - Geen AI)' : ''}`);
+      alert(`Product "${newProduct.title}" succesvol geïmporteerd! ${!useAI ? '(Basis Mode)' : '(AI Mode)'}`);
     } catch (err) {
       console.error(err);
       alert('Import Mislukt: ' + (err as Error).message);
