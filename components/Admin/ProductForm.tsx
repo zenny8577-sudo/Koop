@@ -37,20 +37,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
   const [keepOpen, setKeepOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [galleryUrlInput, setGalleryUrlInput] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Garante subcategoria válida ao trocar categoria
+  // Sincroniza subcategorias
   useEffect(() => {
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
       const validSubs = CATEGORY_MAP[formData.category] || [];
-      // Se tiver subcategorias, seleciona a primeira, senão vazio
-      setFormData(prev => ({ ...prev, subcategory: validSubs.length > 0 ? validSubs[0] : '' }));
+      if (validSubs.length > 0 && !validSubs.includes(formData.subcategory)) {
+         setFormData(prev => ({ ...prev, subcategory: validSubs[0] }));
+      }
     }
   }, [formData.category]);
-
-  const sanitizeFileName = (name: string) => {
-    return name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isGallery = false) => {
     const files = e.target.files;
@@ -63,22 +59,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileExt = file.name.split('.').pop();
-        const cleanName = sanitizeFileName(file.name.replace(`.${fileExt}`, ''));
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}_${cleanName}.${fileExt}`;
-        const filePath = fileName; // Upload na raiz do bucket products
-
+        const safeName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
         const { error: uploadError } = await supabase.storage
           .from('products')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+          .upload(safeName, file);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
           .from('products')
-          .getPublicUrl(filePath);
+          .getPublicUrl(safeName);
         
         uploadedUrls.push(publicUrl);
       }
@@ -89,12 +80,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         setFormData(prev => ({ ...prev, image: uploadedUrls[0] }));
       }
     } catch (error) {
-      console.error('Upload Error:', error);
-      alert(`Fout bij uploaden (check of bucket 'products' bestaat): ${(error as Error).message}`);
+      console.error('Upload Failed:', error);
+      alert('Upload mislukt. Controleer uw verbinding en bestandsgrootte.');
     } finally {
       setIsUploading(false);
-      // Limpa o input para permitir selecionar o mesmo arquivo novamente se falhar
-      if (e.target) e.target.value = '';
+      if (e.target) e.target.value = ''; // Reset input
     }
   };
 
@@ -108,54 +98,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     e.preventDefault();
     if (isUploading || isLoading) return;
 
-    try {
-      // Tratamento robusto de preço: converte vírgula para ponto e remove caracteres não numéricos
-      let rawPrice = formData.price.toString().replace(',', '.').replace(/[^0-9.]/g, '');
-      const parsedPrice = parseFloat(rawPrice);
+    await onSubmit(formData);
 
-      if (isNaN(parsedPrice) || parsedPrice < 0) {
-        alert("Voer een geldige prijs in (bijv. 129.50)");
-        return;
-      }
-
-      if (!formData.title) {
-        alert("Titel is verplicht.");
-        return;
-      }
-
-      // Se não tiver imagem, usa placeholder para não quebrar
-      const finalImage = formData.image || 'https://via.placeholder.com/800?text=No+Image';
-
-      await onSubmit({
-        ...formData,
-        price: parsedPrice,
-        sku: formData.sku || `SKU-${Date.now()}`,
-        status: ProductStatus.ACTIVE,
-        image: finalImage,
-        gallery: formData.gallery || [],
-        originCountry: formData.originCountry,
-        estimatedDelivery: formData.estimatedDelivery
-      });
-
-      if (keepOpen) {
-        setFormData({
+    if (keepOpen) {
+        setFormData(prev => ({
+          ...prev,
           title: '',
           description: '',
           price: '',
-          category: 'Elektronica',
-          subcategory: '',
-          condition: ProductCondition.NEW,
           image: '',
           gallery: [],
-          sku: '',
-          originCountry: 'NL',
-          estimatedDelivery: '1-3 werkdagen'
-        });
+          sku: ''
+        }));
         window.scrollTo(0, 0);
-      }
-    } catch (error) {
-      console.error("Form submit error:", error);
-      alert("Er ging iets mis bij het voorbereiden van de gegevens: " + (error as Error).message);
     }
   };
 
@@ -214,7 +169,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Logistiek</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Herkomst (Landcode, bijv. NL)</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Herkomst (Landcode)</label>
               <input 
                 value={formData.originCountry}
                 onChange={e => setFormData({...formData, originCountry: e.target.value.toUpperCase()})}
@@ -229,7 +184,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                 value={formData.estimatedDelivery}
                 onChange={e => setFormData({...formData, estimatedDelivery: e.target.value})}
                 className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-                placeholder="Bijv. 1-3 werkdagen"
               />
            </div>
         </div>
@@ -277,44 +231,29 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         
         <div className="space-y-4">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Hoofdafbeelding</label>
-          
-          <div className="flex flex-col gap-4">
-              <input 
-                  placeholder="Plak afbeeldings-URL (https://...)" 
-                  value={formData.image}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-              />
-              
-              <div className="flex items-center gap-4">
-                  <div className="h-px bg-slate-200 dark:bg-white/10 flex-1" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase">OF UPLOAD</span>
-                  <div className="h-px bg-slate-200 dark:bg-white/10 flex-1" />
-              </div>
-
-              <div className="flex gap-4 items-center">
-                  <div className="flex-1 relative">
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        disabled={isUploading}
-                        onChange={(e) => handleImageUpload(e, false)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
-                      />
-                      <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20`}>
-                         {isUploading ? (
-                           <div className="flex items-center gap-2 text-[#FF4F00]">
-                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                             <span>Bezig met uploaden...</span>
-                           </div>
-                         ) : 'Klik om te uploaden'}
-                      </div>
+          <div className="flex gap-4 items-center">
+              <div className="flex-1 relative group">
+                  <input 
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploading}
+                    onChange={(e) => handleImageUpload(e, false)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
+                  />
+                  <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-4 text-sm font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2 h-20`}>
+                      {isUploading ? 'Bezig met uploaden...' : formData.image ? 'Klik om te wijzigen' : 'Klik om te uploaden'}
                   </div>
-                  {formData.image && (
-                    <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0 bg-white" alt="Preview" onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error'} />
-                  )}
               </div>
+              {formData.image && (
+                <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0 bg-white" alt="Preview" />
+              )}
           </div>
+          <input 
+              placeholder="Of plak afbeeldings-URL..." 
+              value={formData.image}
+              onChange={e => setFormData({...formData, image: e.target.value})}
+              className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-xs font-bold outline-none dark:text-white text-slate-400"
+          />
         </div>
 
         <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
@@ -323,23 +262,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
            </div>
            
            <div className="flex flex-col gap-4">
-              <div className="flex gap-2">
-                  <input 
-                      placeholder="Galerij URL toevoegen..." 
-                      value={galleryUrlInput}
-                      onChange={e => setGalleryUrlInput(e.target.value)}
-                      className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddGalleryUrl())}
-                  />
-                  <button 
-                      type="button"
-                      onClick={handleAddGalleryUrl}
-                      className="px-6 py-4 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
-                  >
-                      +
-                  </button>
-              </div>
-
               <div className="relative">
                   <input 
                       type="file"
@@ -350,7 +272,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                   />
                   <div className={`w-full bg-white dark:bg-white/5 border-2 border-dashed ${isUploading ? 'border-[#FF4F00]' : 'border-slate-200 dark:border-white/10'} rounded-2xl px-6 py-3 text-xs font-bold text-slate-400 text-center hover:bg-slate-50 dark:hover:bg-white/10 transition-all`}>
-                      {isUploading ? 'Uploaden...' : 'Of upload meerdere afbeeldingen tegelijk'}
+                      {isUploading ? 'Bezig...' : 'Upload meerdere afbeeldingen'}
                   </div>
               </div>
            </div>
@@ -375,9 +297,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
-        <button type="button" onClick={onCancel} className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 transition-all">Annuleren</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 transition-all">ANNULEREN</button>
         <div className="flex-1 flex gap-4">
-            <button type="submit" onClick={() => setKeepOpen(true)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all disabled:opacity-50">Opslaan & Nog een</button>
+            <button type="submit" onClick={() => setKeepOpen(true)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all disabled:opacity-50">OPSLAAN & NOG EEN</button>
             <button type="submit" onClick={() => setKeepOpen(false)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-xl shadow-purple-500/20 disabled:opacity-50">{isLoading ? 'BEZIG...' : 'PUBLICEREN'}</button>
         </div>
       </div>

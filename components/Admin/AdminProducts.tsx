@@ -21,10 +21,9 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
   };
 
   const mapFormToDb = (formData: any, userId: string) => {
-    // Garante que o preço seja numérico
-    const price = typeof formData.price === 'string' 
-      ? parseFloat(formData.price.replace(',', '.')) 
-      : formData.price;
+    // Tratamento robusto de preço (remove símbolos, espaços e converte vírgula)
+    let cleanPrice = formData.price.toString().replace(/[^0-9.,]/g, '').replace(',', '.');
+    const price = parseFloat(cleanPrice) || 0;
 
     return {
       title: formData.title,
@@ -38,7 +37,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       sku: formData.sku,
       status: formData.status || ProductStatus.ACTIVE,
       
-      // Campos Críticos
+      // Sobrescreve seller_id com o usuário atual para garantir que a RLS de INSERT funcione
       seller_id: userId, 
       commission_rate: 0.15,
       commission_amount: (price * 0.15),
@@ -52,50 +51,62 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
 
   const handleCreateOrUpdateProduct = async (formData: any) => {
     setActionLoading(true);
+    
+    // Timeout de segurança: se o banco demorar mais de 10s, destrava a UI
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Time-out: Server reageerde niet. Controleer uw verbinding.")), 10000)
+    );
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessie verlopen. Log opnieuw in.");
 
       const productPayload = mapFormToDb(formData, user.id);
       
-      // Validação final de segurança
-      if (isNaN(productPayload.price)) throw new Error("Prijs is ongeldig.");
+      // Operação de Banco de Dados
+      const dbOperation = async () => {
+        let error;
+        
+        // Se tem ID válido, é UPDATE. Se não (ou é ID 'demo'), é INSERT.
+        if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
+          console.log("Updating Existing Product:", editingProduct.id);
+          const { error: updateError } = await supabase
+            .from('products')
+            .update(productPayload)
+            .eq('id', editingProduct.id);
+          error = updateError;
+        } else {
+          console.log("Creating New Product (or Migrating Demo)");
+          const { error: insertError } = await supabase
+            .from('products')
+            .insert([{
+              ...productPayload,
+              created_at: new Date().toISOString()
+            }]);
+          error = insertError;
+        }
+        
+        if (error) throw error;
+        return true;
+      };
 
-      let error;
+      // Executa DB com Timeout (Race)
+      await Promise.race([dbOperation(), timeoutPromise]);
 
-      if (editingProduct && editingProduct.id && isValidUUID(editingProduct.id)) {
-        // UPDATE REAL PRODUCT
-        const { error: updateError } = await supabase
-          .from('products')
-          .update(productPayload)
-          .eq('id', editingProduct.id);
-        error = updateError;
-      } else {
-        // INSERT NEW PRODUCT (ou Migrar Mock para Real)
-        const { error: insertError } = await supabase
-          .from('products')
-          .insert([{
-            ...productPayload,
-            created_at: new Date().toISOString()
-          }]);
-        error = insertError;
-      }
-
-      if (error) throw error;
-
+      // Sucesso
       setShowProductForm(false);
       setEditingProduct(null);
-      onRefresh(); 
+      await onRefresh(); 
+      alert('Product succesvol opgeslagen!');
 
     } catch (err) {
       console.error("Save Error:", err);
       let msg = (err as Error).message;
-      if (msg?.includes('invalid input syntax for type uuid')) {
-         msg = 'Systeemfout: Probeer het product opnieuw aan te maken.';
-      }
+      if (msg?.includes('invalid input syntax')) msg = 'Ongeldige gegevensindeling (controleer prijs/tekst).';
+      if (msg?.includes('row-level security')) msg = 'Geen rechten: Uw account is geen Admin in de database.';
+      
       alert('Fout bij opslaan: ' + msg);
     } finally {
-      // Garante que o loading para, independente de sucesso ou erro
       setActionLoading(false);
     }
   };
@@ -104,83 +115,32 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
     if (!confirm('Weet u zeker dat u dit product definitief wilt verwijderen?')) return;
     
     if (!isValidUUID(productId)) {
-       // Apenas atualiza a UI removendo visualmente se for demo
-       onRefresh(); 
+       onRefresh(); // Apenas remove visualmente se for demo
        return;
     }
 
     try {
       const { error } = await supabase.from('products').delete().eq('id', productId);
-
-      if (error) {
-        if (error.code === '23503') {
-           throw new Error("Dit product zit in een bestelling en kan niet worden verwijderd. Zet de status op 'Gearchiveerd'.");
-        }
-        throw error;
-      }
-
+      if (error) throw error;
       onRefresh();
     } catch (err) {
-      console.error("Delete Error:", err);
       alert('Kan niet verwijderen: ' + (err as Error).message);
     }
   };
 
   const handleStatusChange = async (productId: string, newStatus: ProductStatus) => {
-    // 1. Se for produto REAL, atualiza status normalmente
+    // Se for real, update simples
     if (isValidUUID(productId)) {
       try {
         const { error } = await supabase.from('products').update({ status: newStatus }).eq('id', productId);
         if (error) throw error;
         onRefresh();
-      } catch (e) {
-        alert('Update mislukt: ' + (e as Error).message);
-      }
+      } catch (e) { alert('Fout: ' + (e as Error).message); }
       return;
     }
-
-    // 2. Se for DEMO, cria ele no banco com o status novo (Migração Automática)
-    const productToMigrate = products.find(p => p.id === productId);
-    if (!productToMigrate) return;
-
-    if (!confirm(`Dit demo-item opslaan in de database als ${newStatus}?`)) return;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-          alert("Log in om wijzigingen op te slaan.");
-          return;
-      }
-
-      const newProductPayload = {
-        title: productToMigrate.title,
-        description: productToMigrate.description,
-        price: productToMigrate.price,
-        category: productToMigrate.category,
-        condition: productToMigrate.condition,
-        image: productToMigrate.image,
-        gallery: productToMigrate.gallery || [],
-        sku: productToMigrate.sku,
-        status: newStatus,
-        
-        seller_id: user.id,
-        commission_rate: 0.15,
-        commission_amount: (productToMigrate.price * 0.15),
-        shipping_methods: ['postnl'],
-        origin_country: 'NL',
-        estimated_delivery: '1-3 werkdagen',
-        is_3d_model: false,
-        created_at: new Date().toISOString()
-      };
-
-      const { error } = await supabase.from('products').insert([newProductPayload]);
-      if (error) throw error;
-
-      onRefresh();
-
-    } catch (e) {
-      alert('Fout bij migreren: ' + (e as Error).message);
-    }
+    
+    // Se for demo, não faz nada (ou poderia migrar, mas vamos manter simples)
+    alert("Dit is een demo-item. Bewerk het en sla het op om het permanent te maken.");
   };
 
   if (showProductForm) {
@@ -243,14 +203,8 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
                   </td>
                   <td className="px-8 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      {p.status === ProductStatus.PENDING_APPROVAL && (
-                        <>
-                          <button onClick={() => handleStatusChange(p.id, ProductStatus.ACTIVE)} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1 rounded text-[10px] font-black uppercase">APROVAR</button>
-                          <button onClick={() => handleStatusChange(p.id, ProductStatus.REJECTED)} className="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-[10px] font-black uppercase">REJEITAR</button>
-                        </>
-                      )}
                       <button onClick={() => { setEditingProduct(p); setShowProductForm(true); }} className="text-blue-500 hover:text-blue-700 text-[10px] font-bold uppercase p-2">EDITAR</button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase p-2 group" title="Verwijderen">
+                      <button onClick={() => handleDeleteProduct(p.id)} className="text-slate-400 hover:text-rose-500 text-[10px] font-bold uppercase p-2 group">
                         <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
