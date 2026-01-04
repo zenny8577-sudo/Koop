@@ -41,35 +41,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     AnalyticsService.pageView(view);
+    window.scrollTo(0, 0);
   }, [view]);
 
-  useEffect(() => {
-    // Enhanced redirect logic with proper dashboard routing
-    if (user) {
-      setIsLoginOpen(false);
-      
-      // Determine the appropriate dashboard based on role
-      let targetView: ViewState = 'home';
-      
-      if (user.role === UserRole.ADMIN) {
-        targetView = 'admin';
-        console.log('Admin user detected, redirecting to admin dashboard');
-      } else if (user.role === UserRole.SELLER) {
-        targetView = 'seller-dashboard';
-        console.log('Seller user detected, redirecting to seller dashboard');
-      } else if (user.role === UserRole.BUYER) {
-        targetView = 'buyer-dashboard';
-        console.log('Buyer user detected, redirecting to buyer dashboard');
-      }
-      
-      // Only redirect if we're not already on a protected route
-      const protectedRoutes = ['admin', 'seller-dashboard', 'buyer-dashboard', 'checkout'];
-      if (!protectedRoutes.includes(view)) {
-        setView(targetView);
-        console.log(`Redirected from ${view} to ${targetView}`);
-      }
+  // Removed the aggressive useEffect that forced redirects on every render.
+  // Now redirection happens only on explicit login success or dashboard button click.
+
+  const getDashboardView = (role: UserRole): ViewState => {
+    switch (role) {
+      case UserRole.ADMIN: return 'admin';
+      case UserRole.SELLER: return 'seller-dashboard';
+      case UserRole.BUYER: return 'buyer-dashboard';
+      default: return 'home';
     }
-  }, [user, view]);
+  };
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -110,10 +95,12 @@ const App: React.FC = () => {
   };
 
   const handleLoginSuccess = async (user: User) => {
-    // The useAuth hook handles setting the user
-    // We just need to close the modal
     setIsLoginOpen(false);
     AnalyticsService.trackEvent('user_login');
+    
+    // Auto-redirect to the appropriate dashboard upon login
+    const targetView = getDashboardView(user.role);
+    setView(targetView);
   };
 
   const handleLogout = async () => {
@@ -146,6 +133,10 @@ const App: React.FC = () => {
     if (key === 'search') setFilters({ ...filters, search: '' });
   };
 
+  const handleNavigate = (newView: string) => {
+    setView(newView as ViewState);
+  };
+
   if (authLoading || cartLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,12 +158,8 @@ const App: React.FC = () => {
         onOpenCart={() => setIsCartOpen(true)} 
         onOpenLogin={() => setIsLoginOpen(true)} 
         onDashboard={() => {
-          if (user?.role === UserRole.ADMIN) {
-            setView('admin');
-          } else if (user?.role === UserRole.SELLER) {
-            setView('seller-dashboard');
-          } else if (user?.role === UserRole.BUYER) {
-            setView('buyer-dashboard');
+          if (user) {
+            setView(getDashboardView(user.role));
           } else {
             setIsLoginOpen(true);
           }
@@ -213,11 +200,11 @@ const App: React.FC = () => {
             onViewProduct={navigateToDetail} 
             onAddToCart={handleAddToCart} 
             onToggleWishlist={handleToggleWishlist} 
-            onNavigate={setView} 
+            onNavigate={handleNavigate} 
           />
         )}
         
-        {view === 'success' && <SuccessView onNavigate={setView} />}
+        {view === 'success' && <SuccessView onNavigate={handleNavigate} />}
         
         {view === 'shop' && (
           <ShopView 
@@ -256,7 +243,7 @@ const App: React.FC = () => {
         {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
       </main>
       
-      {view !== 'success' && <Footer onNavigate={setView} />}
+      {view !== 'success' && <Footer onNavigate={handleNavigate} />}
     </div>
   );
 };
