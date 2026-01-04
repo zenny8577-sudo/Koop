@@ -1,34 +1,34 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../src/integrations/supabase/client';
 
-// A chave pública (pk_live_...) deve estar no .env
+// A chave pública deve estar no .env
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 
 export class PaymentService {
   static async createPaymentIntent(amount: number, currency: string = 'EUR') {
     try {
-      console.log('Initiating real payment intent for:', amount, currency);
+      console.log('Initiating LIVE payment intent:', amount, currency);
       
-      // Chamada direta à Edge Function sem timeout artificial
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: { amount, currency }
       });
 
       if (error) {
-        console.error('Supabase Function Error:', error);
-        throw new Error(`Payment initialization failed: ${error.message}`);
+        console.error('Supabase Edge Function Error:', error);
+        throw new Error(error.message || 'Server connection failed');
       }
 
       if (!data?.clientSecret) {
-        throw new Error('No client secret returned from Stripe backend');
+        console.error('Missing clientSecret in response:', data);
+        throw new Error(data?.error || 'Payment configuration error');
       }
 
       return {
         clientSecret: data.clientSecret
       };
     } catch (error) {
-      console.error('Critical Payment Service Error:', error);
-      throw error; // Lança o erro real para a UI tratar
+      console.error('Payment Service Critical Error:', error);
+      throw error; 
     }
   }
 

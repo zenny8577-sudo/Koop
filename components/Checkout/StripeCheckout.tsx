@@ -3,9 +3,9 @@ import { PaymentService } from '../../services/paymentService';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe, StripeElementLocale } from '@stripe/stripe-js';
 
-// Safe environment variable access
+// Load Stripe with the Public Key from environment variables
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
-const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : Promise.resolve(null);
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
 interface StripeCheckoutProps {
   amount: number;
@@ -13,224 +13,200 @@ interface StripeCheckoutProps {
   onError: (error: string) => void;
 }
 
-// --- DEMO COMPONENT (FALLBACK) ---
-// Used when Stripe keys are missing or API fails
-const DemoPaymentForm: React.FC<{ amount: number; onSuccess: () => void }> = ({ amount, onSuccess }) => {
-  const [loading, setLoading] = useState(false);
-
-  const handleFakePayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    // Simula processamento
-    setTimeout(() => {
-      onSuccess();
-    }, 1500);
-  };
-
-  return (
-    <form onSubmit={handleFakePayment} className="space-y-8 animate-fadeIn">
-      <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100 space-y-6">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-black text-slate-900 uppercase tracking-tighter">Creditcard (Demo)</h4>
-          <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-1 rounded font-bold uppercase tracking-widest">Test Mode</span>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2">Kaartnummer</label>
-            <div className="relative">
-              <input type="text" placeholder="0000 0000 0000 0000" className="w-full bg-white border-none rounded-2xl px-6 py-4 text-sm font-mono font-bold outline-none ring-1 ring-slate-100 focus:ring-2 focus:ring-[#FF4F00]/20" required />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2 opacity-50">
-                 <div className="w-8 h-5 bg-slate-200 rounded"></div>
-                 <div className="w-8 h-5 bg-slate-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2">Vervaldatum</label>
-              <input type="text" placeholder="MM / YY" className="w-full bg-white border-none rounded-2xl px-6 py-4 text-sm font-mono font-bold outline-none ring-1 ring-slate-100 focus:ring-2 focus:ring-[#FF4F00]/20" required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-2">CVC</label>
-              <input type="text" placeholder="123" className="w-full bg-white border-none rounded-2xl px-6 py-4 text-sm font-mono font-bold outline-none ring-1 ring-slate-100 focus:ring-2 focus:ring-[#FF4F00]/20" required />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-5 bg-[#FF4F00] text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-slate-900 transition-all transform hover:-translate-y-1 shadow-xl shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            Verwerken...
-          </>
-        ) : `Betalen € ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`}
-      </button>
-      
-      <p className="text-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-        Dit is een demonstratie checkout. Er wordt geen geld afgeschreven.
-      </p>
-    </form>
-  );
-};
-
-// --- REAL STRIPE FORM ---
-const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onError: (error: string) => void; switchToDemo: () => void }> = ({ amount, onSuccess, onError, switchToDemo }) => {
+const StripeCheckoutForm: React.FC<{ amount: number; onSuccess: () => void; onError: (error: string) => void }> = ({ amount, onSuccess, onError }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [loading, setLoading] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    // SAFETY TIMEOUT: If Stripe takes too long (>5s), switch to Demo
-    const timer = setTimeout(() => {
-      if (mounted && !clientSecret) {
-        console.warn("Stripe init timed out, switching to demo mode");
-        switchToDemo();
-      }
-    }, 5000);
-
-    const initPayment = async () => {
-      try {
-        const { clientSecret: secret } = await PaymentService.createPaymentIntent(amount * 100); 
-        if (mounted) {
-          clearTimeout(timer);
-          setClientSecret(secret);
-        }
-      } catch (error) {
-        console.error("Payment init failed:", error);
-        if (mounted) {
-          clearTimeout(timer);
-          // If real payment fails init, switch to demo instead of showing dead end error
-          switchToDemo();
-        }
-      }
-    };
-
-    initPayment();
-    
-    return () => { mounted = false; clearTimeout(timer); };
-  }, [amount, switchToDemo]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || !clientSecret) return;
 
-    setLoading(true);
-    
-    // Validate first
+    if (!stripe || !elements) {
+      // Stripe has not loaded yet
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    // 1. Validate fields first
     const { error: submitError } = await elements.submit();
     if (submitError) {
-      onError(submitError.message || "Controleer uw invoer.");
-      setLoading(false);
+      setErrorMessage(submitError.message || "Controleer uw invoer.");
+      setIsProcessing(false);
       return;
     }
 
     try {
+      // 2. Confirm payment
       const { error } = await stripe.confirmPayment({
         elements,
-        clientSecret,
-        confirmParams: { return_url: `${window.location.origin}/` },
-        redirect: 'if_required'
+        confirmParams: {
+          return_url: `${window.location.origin}/`,
+        },
+        redirect: 'if_required' // Handle redirect manually or stay on page if no redirect needed
       });
 
       if (error) {
+        setErrorMessage(error.message || 'Betaling mislukt.');
         onError(error.message || 'Betaling mislukt.');
       } else {
+        // Payment successful
         onSuccess();
       }
-    } catch (error) {
-      onError(error instanceof Error ? error.message : 'Er is een onverwachte fout opgetreden.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Onverwachte fout.';
+      setErrorMessage(msg);
+      onError(msg);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  if (!clientSecret) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-6">
-        <div className="w-12 h-12 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin"></div>
-        <div className="text-center space-y-2">
-          <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest animate-pulse">
-            Beveiligde verbinding starten...
-          </p>
-          <button 
-            onClick={switchToDemo} 
-            className="text-[9px] font-bold text-slate-300 hover:text-[#FF4F00] underline cursor-pointer"
-          >
-            Duurt te lang? Klik hier voor demo mode
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8 animate-fadeIn">
-      <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 min-h-[300px]">
-        <PaymentElement options={{ layout: 'tabs' }} />
+      {/* Payment Element Container */}
+      <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 min-h-[200px]">
+        <PaymentElement 
+          options={{ 
+            layout: 'tabs',
+            paymentMethodOrder: ['ideal', 'card', 'bancontact'] 
+          }} 
+        />
       </div>
       
+      {/* Error Display */}
+      {errorMessage && (
+        <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold flex items-center gap-3">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Footer Actions */}
       <div className="flex items-center justify-between pt-4">
         <div className="flex items-center gap-2 text-slate-400">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          <span className="text-[10px] font-bold uppercase tracking-widest">SSL Beveiligd</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">SSL Beveiligd (Live)</span>
         </div>
         <button
           type="submit"
-          disabled={!stripe || loading}
-          className="px-12 py-5 bg-[#FF4F00] text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-slate-900 transition-all transform hover:-translate-y-1 shadow-xl shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!stripe || isProcessing}
+          className="px-12 py-5 bg-[#FF4F00] text-white font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-slate-900 transition-all transform hover:-translate-y-1 shadow-xl shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
         >
-          {loading ? 'Verwerken...' : `Betalen € ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`}
+          {isProcessing ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Verwerken...</span>
+            </>
+          ) : (
+            `Betalen € ${amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`
+          )}
         </button>
       </div>
     </form>
   );
 };
 
-// --- MAIN WRAPPER ---
 const StripeCheckout: React.FC<StripeCheckoutProps> = (props) => {
-  const [useDemo, setUseDemo] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Styling for Stripe Elements
-  const appearance = {
-    theme: 'flat' as const,
-    variables: {
-      fontFamily: 'Inter, sans-serif',
-      colorPrimary: '#FF4F00',
-      colorBackground: '#ffffff',
-      colorText: '#0f172a',
-      borderRadius: '16px',
-      spacingUnit: '5px',
-    },
-    rules: {
-      '.Input': { border: '1px solid #f1f5f9', boxShadow: 'none', padding: '16px', backgroundColor: '#ffffff' },
-      '.Input:focus': { border: '1px solid #FF4F00', boxShadow: '0 0 0 4px rgba(255, 79, 0, 0.1)' },
-      '.Label': { fontWeight: '800', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '8px' }
+  useEffect(() => {
+    let mounted = true;
+
+    const initializePayment = async () => {
+      try {
+        setIsLoading(true);
+        setInitError(null);
+        
+        // Call backend to create PaymentIntent
+        const { clientSecret: secret } = await PaymentService.createPaymentIntent(props.amount * 100);
+        
+        if (mounted) {
+          setClientSecret(secret);
+        }
+      } catch (error) {
+        console.error("Stripe Init Error:", error);
+        if (mounted) {
+          setInitError("Kan beveiligde betaling niet initialiseren. Controleer uw verbinding.");
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (props.amount > 0) {
+      initializePayment();
     }
-  };
 
-  // Immediate fallback if no public key is present
-  if (!stripePublicKey || useDemo) {
-    return <DemoPaymentForm {...props} />;
+    return () => { mounted = false; };
+  }, [props.amount]);
+
+  // Case 1: Missing API Key Configuration
+  if (!stripePromise) {
+    return (
+      <div className="bg-rose-50 p-8 rounded-[32px] border border-rose-100 text-center space-y-4">
+        <h3 className="text-rose-600 font-black uppercase">Configuratie Fout</h3>
+        <p className="text-rose-500 text-sm">VITE_STRIPE_PUBLIC_KEY ontbreekt in de omgeving.</p>
+      </div>
+    );
   }
 
+  // Case 2: Loading State (Waiting for Client Secret)
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-6 animate-fadeIn">
+        <div className="w-12 h-12 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest animate-pulse">
+          Verbinding maken met bank...
+        </p>
+      </div>
+    );
+  }
+
+  // Case 3: Initialization Error (Server failure or Network issue)
+  if (initError || !clientSecret) {
+    return (
+      <div className="bg-slate-50 p-10 rounded-[32px] border border-slate-200 text-center space-y-6 animate-fadeIn">
+        <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto text-slate-400">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-slate-900 font-black uppercase">Verbinding Mislukt</h3>
+          <p className="text-slate-500 text-sm">{initError || "Geen antwoord van betaalserver."}</p>
+        </div>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-8 py-3 bg-slate-900 text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-[#FF4F00] transition-colors"
+        >
+          Opnieuw Proberen
+        </button>
+      </div>
+    );
+  }
+
+  // Case 4: Ready to Render Payment Form
   return (
     <Elements stripe={stripePromise} options={{ 
-      mode: 'payment', 
-      currency: 'eur', 
-      amount: Math.round(props.amount * 100),
-      appearance,
-      locale: 'nl' as StripeElementLocale
+      clientSecret,
+      appearance: {
+        theme: 'flat',
+        variables: {
+          fontFamily: 'Inter, sans-serif',
+          colorPrimary: '#FF4F00',
+          colorBackground: '#ffffff',
+          colorText: '#0f172a',
+          borderRadius: '16px',
+        }
+      },
+      locale: 'nl' 
     }}>
-      <StripeCheckoutForm {...props} switchToDemo={() => setUseDemo(true)} />
+      <StripeCheckoutForm {...props} />
     </Elements>
   );
 };
