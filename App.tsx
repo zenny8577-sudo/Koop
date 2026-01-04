@@ -45,11 +45,28 @@ const AppContent: React.FC = () => {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setProductsData({ data, total: data.length });
-      } else {
-        setProductsData({ data: mockProducts, total: mockProducts.length });
+      let allProducts = data || [];
+
+      // DEDUPLICAÇÃO INTELIGENTE (SHOP):
+      // Mistura produtos reais com mocks, mas remove mocks se o título já existir nos reais.
+      if (allProducts.length < 20) {
+          const realTitles = new Set(allProducts.map(p => p.title.trim().toLowerCase()));
+          const realIds = new Set(allProducts.map(p => p.id));
+          
+          const mocksToAdd = mockProducts.filter(m => {
+             // Só adiciona mocks ATIVOS na loja
+             if (m.status !== 'ACTIVE') return false;
+             
+             const titleExists = realTitles.has(m.title.trim().toLowerCase());
+             const idExists = realIds.has(m.id);
+             return !titleExists && !idExists;
+          });
+          
+          allProducts = [...allProducts, ...mocksToAdd];
       }
+
+      setProductsData({ data: allProducts, total: allProducts.length });
+
     } catch (err) {
       console.error("Using Mock Data due to error or empty DB.", err);
       setProductsData({ data: mockProducts, total: mockProducts.length });

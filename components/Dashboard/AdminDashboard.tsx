@@ -39,9 +39,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
       const { data: txData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
       
       let allProducts = productsData || [];
-      if (allProducts.length < 5) {
-          const existingIds = new Set(allProducts.map(p => p.id));
-          const mocksToAdd = mockProducts.filter(m => !existingIds.has(m.id));
+      
+      // LOGICA DE DEDUPLICAÇÃO INTELIGENTE
+      // Se tivermos poucos produtos reais, misturamos com os mocks para o painel não ficar vazio.
+      // MAS, filtramos os mocks cujo TÍTULO já existe nos produtos reais.
+      // Assim, ao aprovar um mock, ele vira real, e o mock original some da lista.
+      if (allProducts.length < 20) {
+          const realTitles = new Set(allProducts.map(p => p.title.trim().toLowerCase()));
+          const realIds = new Set(allProducts.map(p => p.id));
+          
+          const mocksToAdd = mockProducts.filter(m => {
+             const titleExists = realTitles.has(m.title.trim().toLowerCase());
+             const idExists = realIds.has(m.id);
+             return !titleExists && !idExists;
+          });
+          
           allProducts = [...allProducts, ...mocksToAdd];
       }
       
