@@ -18,7 +18,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [role, setRole] = useState<UserRole>(UserRole.BUYER);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [adminProcessing, setAdminProcessing] = useState(false);
   
   const { signIn, signUp, loading, error: authError } = useAuth();
 
@@ -49,11 +48,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
     try {
       if (activeTab === 'login') {
-        // Check if this is admin scenario
-        if (email === 'brenodiogo27@icloud.com') {
-          setAdminProcessing(true);
-        }
-        
         await signIn(email, password);
         
         // The useAuth hook will handle setting the user
@@ -61,8 +55,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
         // We just need to close the modal
         onClose();
         
-        // Reset state
-        setAdminProcessing(false);
       } else {
         const result = await signUp(email, password, role, firstName, lastName);
         
@@ -110,7 +102,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
     setLastName('');
     setShowEmailConfirmation(false);
     setShowSuccess(false);
-    setAdminProcessing(false);
   };
 
   if (showEmailConfirmation) {
@@ -194,17 +185,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <p className="text-[11px] font-black uppercase tracking-widest text-rose-500">{authError}</p>
-          </div>
-        )}
-
-        {adminProcessing && (
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-slideIn">
-            <svg className="w-5 h-5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <p className="text-[11px] font-black uppercase tracking-widest text-blue-500">
-              Admin auto-confirmation active
-            </p>
           </div>
         )}
 
