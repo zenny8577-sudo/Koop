@@ -272,14 +272,6 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             {loading ? 'Verwerken...' : activeTab === 'login' ? 'Doorgaan' : 'Account Aanmaken'}
           </button>
         </form>
-
-        {/* Admin Login Hint */}
-        {activeTab === 'login' && (
-          <div className="pt-6 border-t border-slate-100 text-center">
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Admin Demo</p>
-            <p className="text-[8px] text-slate-300">Email: brenodiogo27@icloud.com<br />Pass: 19011995Breno@#</p>
-          </div>
-        )}
       </div>
     </div>
   );

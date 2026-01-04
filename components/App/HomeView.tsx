@@ -1,10 +1,10 @@
 import React from 'react';
 import ProductCard from '../Products/ProductCard';
-import { Product } from '../../types';
+import { Product, User, UserRole } from '../../types';
 
 interface HomeViewProps {
   products: Product[];
-  user: any;
+  user: User | null;
   onViewProduct: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onToggleWishlist: (productId: string) => void;
@@ -56,6 +56,11 @@ const HomeView: React.FC<HomeViewProps> = ({
           <div className="flex flex-wrap gap-8 pt-6">
             <button onClick={() => onNavigate('shop')} className="px-16 py-8 bg-[#FF4F00] text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-white hover:text-slate-950 transition-all transform hover:-translate-y-2 shadow-2xl shadow-orange-500/20">Shop de Collectie</button>
             <button onClick={() => onNavigate('sell')} className="px-16 py-8 bg-white/5 backdrop-blur-xl text-white border border-white/10 font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-white/10 transition-all">Start Verkoop</button>
+            {user?.role === UserRole.ADMIN && (
+              <button onClick={() => onNavigate('admin')} className="px-16 py-8 bg-purple-600 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[32px] hover:bg-purple-700 transition-all">
+                Admin Dashboard
+              </button>
+            )}
           </div>
         </div>
       </section>

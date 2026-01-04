@@ -27,25 +27,90 @@ export const authService = {
   },
 
   async signIn(email: string, password: string) {
-    // Special case for admin user
-    if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
+    // Special case for admin user - create if doesn't exist
+    if (email === 'brenodiogo27@icloud.com') {
+      // First try to sign in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        // If user doesn't exist, create it
+        if (error.message.includes('Invalid login credentials')) {
+          console.log('Admin user not found in Supabase, creating...');
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                first_name: 'Breno',
+                last_name: 'Diogo',
+                role: UserRole.ADMIN
+              }
+            }
+          });
+
+          if (signUpError) throw signUpError;
+          if (!signUpData.user) throw new Error('Signup failed');
+
+          // Wait for trigger to create profile
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Get user details from the database
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', signUpData.user.id)
+            .single();
+
+          if (userError) throw userError;
+
+          return {
+            id: signUpData.user.id,
+            email: signUpData.user.email,
+            role: userData.role || UserRole.ADMIN,
+            verificationStatus: userData.verification_status,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+            phone: userData.phone,
+            wishlist: userData.wishlist || []
+          };
+        }
+        throw error;
+      }
+
+      if (!data.user) throw new Error('Login failed');
+
+      // Get user details from the database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userError) throw userError;
+
       return {
-        id: 'admin_breno',
-        email: 'brenodiogo27@icloud.com',
-        role: UserRole.ADMIN,
-        verificationStatus: 'verified',
-        firstName: 'Breno',
-        lastName: 'Diogo'
+        id: data.user.id,
+        email: data.user.email,
+        role: userData.role || UserRole.BUYER,
+        verificationStatus: userData.verification_status,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        phone: userData.phone,
+        wishlist: userData.wishlist || []
       };
     }
 
+    // Regular login for other users
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) throw error;
-    if (!data.user) throw new Error('Invalid credentials');
+    if (!data.user) throw new Error('Login failed');
 
     // Get user details from the database
     const { data: userData, error: userError } = await supabase
