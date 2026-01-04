@@ -33,7 +33,7 @@ const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <nav className="sticky top-0 z-[100] bg-white/70 dark:bg-slate-950/80 backdrop-blur-2xl border-b border-slate-100/50 dark:border-white/5 transition-colors duration-300">
+    <nav className="sticky top-0 z-[100] bg-white/70 dark:bg-black/80 backdrop-blur-2xl border-b border-slate-100/50 dark:border-white/5 transition-colors duration-300">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-24 flex items-center justify-between">
         {/* Logo */}
         <div onClick={onHome} className="cursor-pointer">
@@ -69,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mega Menu Overlay */}
             <div 
-              className={`absolute top-full -left-20 w-[640px] bg-white dark:bg-slate-900 rounded-[48px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-white/10 p-10 transition-all duration-500 origin-top ${
+              className={`absolute top-full -left-20 w-[640px] bg-white dark:bg-neutral-900 rounded-[48px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-white/10 p-10 transition-all duration-500 origin-top ${
                 isMegaMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-4'
               }`}
             >
@@ -80,7 +80,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     onClick={() => { onShop(); setIsMegaMenuOpen(false); }}
                     className="flex items-center gap-6 p-6 rounded-[32px] hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left group"
                   >
-                    <div className="w-16 h-16 bg-white dark:bg-white/10 rounded-full shadow-sm border border-slate-100 dark:border-white/5 flex items-center justify-center text-3xl group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
+                    <div className="w-16 h-16 bg-white dark:bg-white/5 rounded-full shadow-sm border border-slate-100 dark:border-white/5 flex items-center justify-center text-3xl group-hover:scale-110 group-hover:shadow-md transition-all duration-300">
                       {cat.icon}
                     </div>
                     <div>
@@ -111,7 +111,7 @@ const Navbar: React.FC<NavbarProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#FF4F00] text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+              <span className="absolute -top-1 -right-1 bg-[#FF4F00] text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-black">
                 {cartCount}
               </span>
             )}
@@ -131,13 +131,13 @@ const Navbar: React.FC<NavbarProps> = ({
               </button>
               
               <div 
-                className={`absolute top-full right-0 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-white/10 mt-2 py-4 transition-all duration-300 origin-top-right ${
+                className={`absolute top-full right-0 w-48 bg-white dark:bg-neutral-900 rounded-2xl shadow-xl border border-slate-100 dark:border-white/10 mt-2 py-4 transition-all duration-300 origin-top-right ${
                   isUserMenuOpen ? 'opacity-100 scale-100 visible translate-y-0' : 'opacity-0 scale-95 invisible -translate-y-2'
                 }`}
               >
-                <button onClick={onDashboard} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:text-[#FF4F00] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">Overzicht</button>
+                <button onClick={onDashboard} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-neutral-300 hover:text-[#FF4F00] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">Overzicht</button>
                 {user.role === UserRole.ADMIN && (
-                  <button onClick={onAdmin} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 hover:text-[#FF4F00] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">Admin Panel</button>
+                  <button onClick={onAdmin} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-neutral-300 hover:text-[#FF4F00] hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">Admin Panel</button>
                 )}
                 <div className="my-2 border-t border-slate-100 dark:border-white/10" />
                 <button onClick={onLogout} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-white/5 transition-colors">Uitloggen</button>

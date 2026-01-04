@@ -114,7 +114,7 @@ const AppContent: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-black">
         <div className="text-center space-y-4">
            <div className="w-16 h-16 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin mx-auto"></div>
            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Koop...</p>
@@ -128,7 +128,7 @@ const AppContent: React.FC = () => {
     if (view === 'success') return <SuccessView onNavigate={(v) => setView(v as ViewState)} />;
     
     return (
-      <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
+      <div className="min-h-screen bg-white dark:bg-black transition-colors duration-500 text-slate-900 dark:text-white">
         <Navbar 
           onHome={() => setView('home')} 
           onShop={() => setView('shop')} 

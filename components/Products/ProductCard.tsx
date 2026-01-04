@@ -39,19 +39,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return (
       <div 
         onClick={() => onClick?.(product)}
-        className="group relative w-full h-full min-h-[500px] rounded-[48px] overflow-hidden cursor-pointer bg-slate-100 dark:bg-slate-900 shadow-2xl"
+        className="group relative w-full h-full min-h-[500px] rounded-[48px] overflow-hidden cursor-pointer bg-slate-100 dark:bg-neutral-900 shadow-2xl border border-transparent dark:border-white/5"
       >
         <img 
           src={product.image} 
           alt={product.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 dark:opacity-70"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 dark:opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
         
         <div className="absolute top-8 right-8 flex flex-col gap-3 items-end">
           <button 
             onClick={handleWishlist}
-            className={`w-14 h-14 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-white/10 text-white hover:bg-white/20'}`}
+            className={`w-14 h-14 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-black/30 text-white hover:bg-black/50'}`}
           >
             <svg className={`w-6 h-6 ${isWishlisted ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -89,18 +89,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div className="group flex flex-col h-full bg-transparent">
-      <div className="relative aspect-[4/5] bg-slate-50 dark:bg-white/5 rounded-[40px] overflow-hidden shadow-sm border border-slate-100/50 dark:border-white/5 transition-all duration-500 hover:shadow-2xl hover:border-slate-200 dark:hover:border-white/20">
+      <div className="relative aspect-[4/5] bg-slate-50 dark:bg-neutral-900 rounded-[40px] overflow-hidden shadow-sm border border-slate-100/50 dark:border-white/5 transition-all duration-500 hover:shadow-2xl hover:border-slate-200 dark:hover:border-white/10">
         <img 
           src={product.image} 
           alt={product.title}
-          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 opacity-100 dark:opacity-90"
         />
         
         {/* Actions Overlays */}
         <div className="absolute top-5 right-5 z-20">
           <button 
             onClick={handleWishlist}
-            className={`w-10 h-10 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-white/30 dark:bg-black/30 text-slate-900 dark:text-white hover:bg-white/50 dark:hover:bg-black/50'}`}
+            className={`w-10 h-10 rounded-full backdrop-blur-xl border border-white/20 flex items-center justify-center transition-all ${isWishlisted ? 'bg-[#FF4F00] text-white border-none' : 'bg-white/30 dark:bg-black/40 text-slate-900 dark:text-white hover:bg-white/50 dark:hover:bg-black/60'}`}
           >
             <svg className={`w-5 h-5 ${isWishlisted ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -125,13 +125,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-950/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onClick?.(product); }}
-            className="flex-1 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-slate-900 transition-all transform active:scale-95"
+            className="flex-1 py-4 bg-white dark:bg-black text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white hover:text-white dark:hover:text-black transition-all transform active:scale-95"
           >
             Details
           </button>
           <button 
             onClick={handleAddToCartClick}
-            className="w-12 h-12 bg-[#FF4F00] text-white flex items-center justify-center rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white dark:hover:text-slate-900 transition-all transform active:scale-95"
+            className="w-12 h-12 bg-[#FF4F00] text-white flex items-center justify-center rounded-2xl shadow-xl hover:bg-slate-900 dark:hover:bg-white dark:hover:text-black transition-all transform active:scale-95"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -150,12 +150,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </h3>
           <div className="flex items-center gap-2">
             <span className="w-1 h-1 bg-[#FF4F00] rounded-full" />
-            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.2em]">{product.category}</p>
+            <p className="text-[9px] text-slate-400 dark:text-neutral-500 font-black uppercase tracking-[0.2em]">{product.category}</p>
           </div>
         </div>
         <div className="text-right">
           <span className="text-sm font-black text-slate-900 dark:text-white block">€{product.price.toLocaleString()}</span>
-          <span className="text-[8px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-widest">Incl. VAT</span>
+          <span className="text-[8px] font-bold text-slate-300 dark:text-neutral-600 uppercase tracking-widest">Incl. VAT</span>
         </div>
       </div>
     </div>
