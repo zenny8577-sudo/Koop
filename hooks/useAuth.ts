@@ -83,44 +83,49 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
+    const cleanEmail = email.trim().toLowerCase();
     
     try {
       // Regular login for all users
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password
       });
 
       if (error) {
+        console.log('Login error:', error.message);
+        
         // If user exists but email not confirmed, handle it
         if (error.message.includes('Email not confirmed')) {
           // Check if this is admin user
-          if (email === 'brenodiogo27@icloud.com') {
+          if (cleanEmail === 'brenodiogo27@icloud.com') {
             // Try to confirm the email using the edge function
             console.log('Admin user exists but email not confirmed, attempting auto-confirm...');
             
+            // Using hardcoded URL to ensure connectivity
             const response = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-confirm-admin`,
+              'https://pyfgirembpoymascmxxn.supabase.co/functions/v1/auto-confirm-admin',
               {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
                   'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email: cleanEmail, password })
               }
             );
 
             const result = await response.json();
 
             if (!response.ok) {
+              console.error('Edge function error:', result);
               throw new Error(result.error || 'Failed to auto-confirm admin');
             }
 
             // Set the session manually
             if (result.session) {
-              await supabase.auth.setSession(result.session);
+              const { error: sessionError } = await supabase.auth.setSession(result.session);
+              if (sessionError) throw sessionError;
             }
 
             // Load the user profile
