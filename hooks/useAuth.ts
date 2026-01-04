@@ -7,10 +7,7 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper para converter snake_case do banco para camelCase da interface User
-  // E normalizar a ROLE para garantir redirecionamento correto
   const mapProfileToUser = (profile: any): User => {
-    // Normaliza role para UpperCase para bater com o Enum (ADMIN, SELLER, BUYER)
     const rawRole = profile.role || 'BUYER';
     const normalizedRole = rawRole.toUpperCase() as UserRole;
 
@@ -29,35 +26,6 @@ export function useAuth() {
     };
   };
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error('Session check error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await loadUserProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const loadUserProfile = async (userId: string): Promise<User | null> => {
     try {
       const { data: profile, error: profileError } = await supabase
@@ -68,7 +36,6 @@ export function useAuth() {
 
       if (profileError) {
         if (profileError.code === 'PGRST116') {
-          // Perfil não encontrado, criar fallback
           const { data: authUser } = await supabase.auth.getUser();
           const isAdmin = authUser.user?.email === 'brenodiogo27@icloud.com';
           
@@ -103,22 +70,89 @@ export function useAuth() {
     }
   };
 
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const signIn = async (email: string, password: string): Promise<User | null> => {
     setLoading(true);
     setError(null);
     const cleanEmail = email.trim().toLowerCase();
-    
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password
-      });
+      // Special handling for admin user to ensure creation on first login
+      if (cleanEmail === 'brenodiogo27@icloud.com') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Login failed');
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            console.log('Admin user not found, attempting to create...');
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: cleanEmail,
+              password,
+              options: {
+                data: {
+                  first_name: 'Breno',
+                  last_name: 'Diogo',
+                  role: UserRole.ADMIN,
+                },
+              },
+            });
 
-      const userProfile = await loadUserProfile(data.user.id);
-      return userProfile;
+            if (signUpError) throw signUpError;
+            if (!signUpData.user) throw new Error('Admin user creation failed.');
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const userProfile = await loadUserProfile(signUpData.user.id);
+            return userProfile;
+          }
+          throw error;
+        }
+        
+        if (!data.user) throw new Error('Login failed');
+        const userProfile = await loadUserProfile(data.user.id);
+        return userProfile;
+
+      } else {
+        // Standard login for regular users
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (error) throw error;
+        if (!data.user) throw new Error('Login failed');
+        const userProfile = await loadUserProfile(data.user.id);
+        return userProfile;
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed');
