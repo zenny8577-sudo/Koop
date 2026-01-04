@@ -34,20 +34,20 @@ const App: React.FC = () => {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
+  // Load mock data
   useEffect(() => {
-    // Load mock products for demo
     setProductsData({ data: mockProducts, total: mockProducts.length });
   }, []);
 
+  // Track page views
   useEffect(() => {
     AnalyticsService.pageView(view);
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Função robusta para determinar dashboard
+  // Função para determinar dashboard
   const getDashboardView = (role: UserRole | string): ViewState => {
     const normalizedRole = role?.toUpperCase() || 'BUYER';
-    console.log('Calculating dashboard for role:', normalizedRole);
     
     if (normalizedRole === 'ADMIN') return 'admin';
     if (normalizedRole === 'SELLER') return 'seller-dashboard';
@@ -55,6 +55,18 @@ const App: React.FC = () => {
     
     return 'home';
   };
+
+  // REDIRECIONAMENTO AUTOMÁTICO
+  // Se o usuário carregar a página já logado, mande-o para o dashboard (a menos que esteja no shop/checkout)
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (view === 'home' || view === 'sell') {
+        const target = getDashboardView(user.role);
+        console.log("Auto-redirecting logged in user to:", target);
+        setView(target);
+      }
+    }
+  }, [user, authLoading]);
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -89,18 +101,10 @@ const App: React.FC = () => {
     }
   };
 
-  // --- CORREÇÃO CRÍTICA AQUI ---
   const handleLoginSuccess = async (loggedInUser: User) => {
-    console.log('LOGIN SUCCESS! FORCE REDIRECT FOR:', loggedInUser);
-    
-    // Fechar modal imediatamente
+    console.log('Login success handled for:', loggedInUser);
     setIsLoginOpen(false);
-    
-    // Calcular view alvo
     const targetView = getDashboardView(loggedInUser.role);
-    console.log('TARGET VIEW:', targetView);
-    
-    // Forçar atualização de estado
     setView(targetView);
   };
 
@@ -141,7 +145,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Se o view for checkout, renderiza direto
   if (view === 'checkout') {
     return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
   }

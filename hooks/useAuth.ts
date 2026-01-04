@@ -7,19 +7,20 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper para converter perfil do banco para objeto User
+  // Helper para converter perfil do banco para objeto User com regras de segurança forçadas
   const mapProfileToUser = (profile: any, authEmail?: string): User => {
-    // FORCE ADMIN ROLE FOR SPECIFIC EMAIL - "CHAVE MESTRA"
-    if (authEmail === 'brenodiogo27@icloud.com' || profile.email === 'brenodiogo27@icloud.com') {
-        console.log("👑 ADMIN DETECTED - FORCING ROLE");
+    const emailToCheck = (authEmail || profile.email || '').toLowerCase();
+
+    // 1. REGRA MESTRA ADMIN
+    if (emailToCheck === 'brenodiogo27@icloud.com') {
         return {
           id: profile.id,
-          email: profile.email,
-          role: UserRole.ADMIN, // Forçado
-          firstName: profile.first_name || 'Breno',
-          lastName: profile.last_name || 'Diogo',
+          email: emailToCheck,
+          role: UserRole.ADMIN,
+          firstName: 'Breno',
+          lastName: 'Diogo',
           phone: profile.phone,
-          verificationStatus: 'verified', // Forçado
+          verificationStatus: 'verified',
           wishlist: profile.wishlist || [],
           stripeAccountId: profile.stripe_account_id,
           created_at: profile.created_at,
@@ -27,12 +28,47 @@ export function useAuth() {
         };
     }
 
+    // 2. REGRA MESTRA VENDEDOR (Teste)
+    if (emailToCheck === 'seller@koop.nl') {
+        return {
+          id: profile.id,
+          email: emailToCheck,
+          role: UserRole.SELLER,
+          firstName: 'Sjors',
+          lastName: 'de Groot',
+          phone: profile.phone,
+          verificationStatus: 'verified',
+          wishlist: profile.wishlist || [],
+          stripeAccountId: profile.stripe_account_id,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+        };
+    }
+
+    // 3. REGRA MESTRA COMPRADOR (Teste)
+    if (emailToCheck === 'buyer@koop.nl') {
+        return {
+          id: profile.id,
+          email: emailToCheck,
+          role: UserRole.BUYER,
+          firstName: 'Anna',
+          lastName: 'van Dijk',
+          phone: profile.phone,
+          verificationStatus: 'verified',
+          wishlist: profile.wishlist || [],
+          stripeAccountId: profile.stripe_account_id,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
+        };
+    }
+
+    // Fluxo normal do banco de dados
     const rawRole = profile.role || 'BUYER';
     const normalizedRole = rawRole.toUpperCase() as UserRole;
 
     return {
       id: profile.id,
-      email: profile.email,
+      email: emailToCheck,
       role: normalizedRole,
       firstName: profile.first_name,
       lastName: profile.last_name,
@@ -47,38 +83,20 @@ export function useAuth() {
 
   const loadUserProfile = async (userId: string, email?: string): Promise<User | null> => {
     try {
-      // Tenta buscar o perfil
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
-      // Se não achar perfil no banco
+      // Se não achar perfil no banco, usa fallback baseado no email
       if (profileError) {
-        console.warn("User profile not found in public.users, creating fallback...");
-        
-        // Se for o admin, cria um objeto forçado mesmo sem banco
-        if (email === 'brenodiogo27@icloud.com') {
-            const adminUser: User = {
-                id: userId,
-                email: email,
-                role: UserRole.ADMIN,
-                firstName: 'Breno',
-                lastName: 'Diogo',
-                verificationStatus: 'verified',
-                wishlist: []
-            };
-            setUser(adminUser);
-            return adminUser;
-        }
-        return null;
+        console.warn("User profile not found in DB, using fallback logic for:", email);
+        const dummyProfile = { id: userId, email: email }; // Objeto mínimo para o mapper funcionar
+        return mapProfileToUser(dummyProfile, email);
       }
 
-      // Se achou, mapeia
-      const mappedUser = mapProfileToUser(profile, email);
-      setUser(mappedUser);
-      return mappedUser;
+      return mapProfileToUser(profile, email);
     } catch (err) {
       console.error('Profile load error:', err);
       return null;
@@ -125,10 +143,19 @@ export function useAuth() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+         // Auto-create test users if they don't exist in Auth but we have hardcoded rules
+         if (error.message.includes('Invalid login credentials') && 
+            ['seller@koop.nl', 'buyer@koop.nl'].includes(cleanEmail)) {
+             return await signUp(cleanEmail, password, 
+                cleanEmail.includes('seller') ? UserRole.SELLER : UserRole.BUYER
+             );
+         }
+         throw error;
+      }
+      
       if (!data.user) throw new Error('Login failed');
 
-      // Passamos o email explicitamente para garantir a checagem da "Chave Mestra"
       const userProfile = await loadUserProfile(data.user.id, data.user.email);
       return userProfile;
 
@@ -173,7 +200,9 @@ export function useAuth() {
       if (error) throw error;
       if (!data.user) throw new Error('Signup failed');
 
+      // Aguarda trigger do banco
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const userProfile = await loadUserProfile(data.user.id, data.user.email);
       return userProfile;
     } catch (err) {
