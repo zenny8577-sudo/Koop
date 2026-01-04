@@ -44,16 +44,30 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
+  // AUTOMATIC REDIRECT LOGIC
+  // Este efeito garante que assim que o usuário for carregado, ele seja levado ao painel correto.
+  useEffect(() => {
+    if (user && !authLoading) {
+      // Se estiver na home e logar, redireciona.
+      // Se já estiver em uma rota específica (ex: checkout), mantém.
+      if (view === 'home' || view === 'sell') {
+        const targetView = getDashboardView(user.role);
+        console.log('Auto-redirecting user to:', targetView);
+        setView(targetView);
+      }
+    }
+  }, [user, authLoading]);
+
   // Função robusta para determinar dashboard
   const getDashboardView = (role: UserRole | string): ViewState => {
-    const normalizedRole = role.toUpperCase();
-    console.log('Redirecting for role:', normalizedRole);
+    const normalizedRole = role?.toUpperCase();
+    console.log('Calculating dashboard for role:', normalizedRole);
     
     if (normalizedRole === 'ADMIN') return 'admin';
     if (normalizedRole === 'SELLER') return 'seller-dashboard';
     if (normalizedRole === 'BUYER') return 'buyer-dashboard';
     
-    return 'home';
+    return 'home'; // Fallback
   };
 
   const handleAddToCart = (product: Product) => {
@@ -94,14 +108,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoginSuccess = async (user: User) => {
-    console.log('Login successful, user:', user);
+  const handleLoginSuccess = async (loggedInUser: User) => {
+    console.log('Login success callback triggered for:', loggedInUser.email);
     setIsLoginOpen(false);
-    AnalyticsService.trackEvent('user_login');
-    
-    // Auto-redirect to the appropriate dashboard upon login
-    const targetView = getDashboardView(user.role);
-    console.log('Setting view to:', targetView);
+    // O useEffect acima cuidará do redirecionamento, mas forçamos aqui também para garantir resposta instantânea da UI
+    const targetView = getDashboardView(loggedInUser.role);
     setView(targetView);
   };
 
