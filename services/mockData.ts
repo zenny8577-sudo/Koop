@@ -10,6 +10,7 @@ export const currentUser: User = {
 export const generateMockProducts = (count: number): Product[] => {
   // Produtos realistas fixos para garantir que a loja pareça bonita
   const fixedProducts: Product[] = [
+    // 1. iPhone (Elektronica)
     {
       id: 'p-iphone-15',
       sellerId: 'user_123',
@@ -29,6 +30,7 @@ export const generateMockProducts = (count: number): Product[] => {
       is3DModel: false,
       createdAt: new Date().toISOString()
     },
+    // 2. Eames Chair (Design)
     {
       id: 'p-eames-chair',
       sellerId: 'user_456',
@@ -48,6 +50,7 @@ export const generateMockProducts = (count: number): Product[] => {
       is3DModel: false,
       createdAt: new Date(Date.now() - 86400000).toISOString()
     },
+    // 3. VanMoof (Fietsen)
     {
       id: 'p-vanmoof',
       sellerId: 'user_789',
@@ -67,6 +70,7 @@ export const generateMockProducts = (count: number): Product[] => {
       is3DModel: false,
       createdAt: new Date(Date.now() - 172800000).toISOString()
     },
+    // 4. Rolex (Antiek/Horloges)
     {
       id: 'p-rolex',
       sellerId: 'user_123',
@@ -86,6 +90,7 @@ export const generateMockProducts = (count: number): Product[] => {
       is3DModel: false,
       createdAt: new Date(Date.now() - 250000000).toISOString()
     },
+    // 5. MacBook (Elektronica)
     {
       id: 'p-macbook',
       sellerId: 'user_999',
@@ -105,6 +110,7 @@ export const generateMockProducts = (count: number): Product[] => {
       is3DModel: false,
       createdAt: new Date().toISOString()
     },
+    // 6. Flos Lamp (Design)
     {
       id: 'p-lamp',
       sellerId: 'user_456',
@@ -123,12 +129,192 @@ export const generateMockProducts = (count: number): Product[] => {
       shippingMethods: ['dhl'],
       is3DModel: false,
       createdAt: new Date().toISOString()
+    },
+    // 7. Sony Camera (Elektronica)
+    {
+      id: 'p-sony-cam',
+      sellerId: 'user_123',
+      title: 'Sony A7 IV Body',
+      description: 'Slechts 500 clicks. Inclusief originele doos en strap. Sensor is professioneel gereinigd.',
+      price: 2100,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Elektronica',
+      image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 252,
+      sku: 'SNY-A7IV',
+      barcode: '',
+      weight: 0.8,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 100000).toISOString()
+    },
+    // 8. Drone (Gadgets)
+    {
+      id: 'p-drone',
+      sellerId: 'user_777',
+      title: 'DJI Mini 4 Pro Fly More',
+      description: 'Compleet pakket met 3 accu\'s, tas en controller met scherm. Nooit gecrasht.',
+      price: 850,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Gadgets',
+      image: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.15,
+      commissionAmount: 127.5,
+      sku: 'DJI-MINI4',
+      barcode: '',
+      weight: 2,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 200000).toISOString()
+    },
+    // 9. Vintage Jas (Mode)
+    {
+      id: 'p-burberry',
+      sellerId: 'user_mode',
+      title: 'Vintage Burberry Trenchcoat',
+      description: 'Klassieke beige trenchcoat. Maat 50. Jaren 90, in perfecte staat. Chemisch gereinigd.',
+      price: 450,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Vintage Mode',
+      image: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.15,
+      commissionAmount: 67.5,
+      sku: 'BUR-TRENCH',
+      barcode: '',
+      weight: 1.2,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 300000).toISOString()
+    },
+    // 10. Koffiemachine (Gadgets/Keuken)
+    {
+      id: 'p-sage',
+      sellerId: 'user_coffee',
+      title: 'Sage Barista Express',
+      description: 'RVS Uitvoering. Altijd gebruikt met waterfilter. Recent ontkalkt. Inclusief alle accessoires.',
+      price: 425,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Gadgets',
+      image: 'https://images.unsplash.com/photo-1517912445312-d92292f7d305?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.15,
+      commissionAmount: 63.75,
+      sku: 'SGE-BARISTA',
+      barcode: '',
+      weight: 12,
+      shippingMethods: ['dhl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 400000).toISOString()
+    },
+    // 11. Nieuw Item 1 (Para Home Slice 10-14)
+    {
+      id: 'p-bang-olufsen',
+      sellerId: 'user_audio',
+      title: 'Beoplay H95 Headphones',
+      description: 'Het vlaggenschip van B&O. Black leather. Noise cancelling van topniveau. In originele aluminium koffer.',
+      price: 650,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Elektronica',
+      image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 78,
+      sku: 'BO-H95',
+      barcode: '',
+      weight: 1,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    // 12. Nieuw Item 2
+    {
+      id: 'p-lego-falcon',
+      sellerId: 'user_toy',
+      title: 'LEGO Star Wars Millennium Falcon UCS',
+      description: 'Set 75192. Volledig compleet, inclusief doos en boek. Eén keer gebouwd door volwassene.',
+      price: 700,
+      condition: ProductCondition.LIKE_NEW,
+      status: ProductStatus.ACTIVE,
+      category: 'Gadgets',
+      image: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.15,
+      commissionAmount: 105,
+      sku: 'LGO-75192',
+      barcode: '',
+      weight: 14,
+      shippingMethods: ['dhl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    // 13. Nieuw Item 3
+    {
+      id: 'p-vintage-vase',
+      sellerId: 'user_art',
+      title: 'Mid-Century Keramiek Vaas',
+      description: 'West Germany Pottery. Nummer 289-41. Perfecte staat, geen chips of barsten. Uniek decor.',
+      price: 85,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Antiek',
+      image: 'https://images.unsplash.com/photo-1581264692636-35829171e845?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.15,
+      commissionAmount: 12.75,
+      sku: 'ANT-VASE-41',
+      barcode: '',
+      weight: 2,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    // 14. Nieuw Item 4
+    {
+      id: 'p-ipad-pro',
+      sellerId: 'user_tech2',
+      title: 'iPad Pro 12.9" M2 - 1TB',
+      description: 'Space Grey. Cellular model. Inclusief witte Magic Keyboard. Lichte krasjes op de achterkant, scherm perfect.',
+      price: 1350,
+      condition: ProductCondition.GOOD,
+      status: ProductStatus.ACTIVE,
+      category: 'Elektronica',
+      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 162,
+      sku: 'APL-IPD-M2',
+      barcode: '',
+      weight: 1.5,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date().toISOString()
+    },
+    // 15. Extra Item
+    {
+      id: 'p-lv-bag',
+      sellerId: 'user_lux',
+      title: 'Louis Vuitton Keepall 55',
+      description: 'Monogram Canvas. Vintage model uit 1995. Prachtig patina op het leer. Rits werkt soepel.',
+      price: 890,
+      condition: ProductCondition.FAIR,
+      status: ProductStatus.ACTIVE,
+      category: 'Vintage Mode',
+      image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800',
+      commissionRate: 0.12,
+      commissionAmount: 106.8,
+      sku: 'LV-KEEP-55',
+      barcode: '',
+      weight: 2,
+      shippingMethods: ['postnl'],
+      is3DModel: false,
+      createdAt: new Date(Date.now() - 500000).toISOString()
     }
   ];
 
   return fixedProducts;
 };
 
-export const mockProducts: Product[] = generateMockProducts(6);
+export const mockProducts: Product[] = generateMockProducts(16);
 export const mockTransactions: Transaction[] = [];
 export const mockReviews: Review[] = [];
