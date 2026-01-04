@@ -21,6 +21,21 @@ const shippingLabels: Record<string, string> = {
   fedex: 'FedEx Priority'
 };
 
+// Component moved outside to prevent re-mounting on every render
+const InputField = ({ label, value, onChange, placeholder, type = "text", half = false }: any) => (
+  <div className={`space-y-3 ${half ? 'md:col-span-1' : 'md:col-span-2'}`}>
+    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
+    <input 
+      type={type} 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      placeholder={placeholder} 
+      required 
+      className="w-full bg-slate-50 border border-transparent focus:border-[#FF4F00]/20 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/5" 
+    />
+  </div>
+);
+
 const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }) => {
   const [step, setStep] = useState<'info' | 'shipping' | 'payment'>('info');
   const [address, setAddress] = useState<Address>({
@@ -41,20 +56,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
     });
     onComplete(address, 'stripe');
   };
-
-  const InputField = ({ label, value, onChange, placeholder, type = "text", half = false }: any) => (
-    <div className={`space-y-3 ${half ? 'md:col-span-1' : 'md:col-span-2'}`}>
-      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
-      <input 
-        type={type} 
-        value={value} 
-        onChange={e => onChange(e.target.value)} 
-        placeholder={placeholder} 
-        required 
-        className="w-full bg-slate-50 border border-transparent focus:border-[#FF4F00]/20 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none transition-all placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/5" 
-      />
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-white">
