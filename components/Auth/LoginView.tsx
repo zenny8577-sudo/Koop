@@ -49,8 +49,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
 
     try {
       if (activeTab === 'login') {
-        // Check if this is admin auto-confirm scenario
-        if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
+        // Check if this is admin scenario
+        if (email === 'brenodiogo27@icloud.com') {
           setAdminAutoConfirm(true);
         }
         

@@ -85,50 +85,55 @@ export function useAuth() {
     setError(null);
     
     try {
-      // Special handling for admin credentials - use auto-confirm function
-      if (email === 'brenodiogo27@icloud.com' && password === '19011995Breno@#') {
-        console.log('Admin login detected, using auto-confirm function...');
-        
-        // Call the edge function to auto-confirm and create user
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-confirm-admin`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({ email, password })
-          }
-        );
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to auto-confirm admin');
-        }
-
-        // Set the session manually
-        if (result.session) {
-          await supabase.auth.setSession(result.session);
-        }
-
-        // Load the user profile
-        if (result.user) {
-          await loadUserProfile(result.user.id);
-        }
-
-        return result.user;
-      }
-
-      // Regular login for other users
+      // Regular login for all users
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        // If user exists but email not confirmed, handle it
+        if (error.message.includes('Email not confirmed')) {
+          // Check if this is admin user
+          if (email === 'brenodiogo27@icloud.com') {
+            // Try to confirm the email using the edge function
+            console.log('Admin user exists but email not confirmed, attempting auto-confirm...');
+            
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-confirm-admin`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({ email, password })
+              }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.error || 'Failed to auto-confirm admin');
+            }
+
+            // Set the session manually
+            if (result.session) {
+              await supabase.auth.setSession(result.session);
+            }
+
+            // Load the user profile
+            if (result.user) {
+              await loadUserProfile(result.user.id);
+            }
+
+            return result.user;
+          }
+        }
+        throw error;
+      }
+
       if (!data.user) throw new Error('Login failed');
 
       await loadUserProfile(data.user.id);
