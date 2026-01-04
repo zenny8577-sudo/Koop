@@ -35,11 +35,12 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
   };
 
   const flags: Record<string, string> = {
-    'NL': '🇳🇱', 'CN': '🇨🇳', 'DE': '🇩🇪', 'US': '🇺🇸', 'IT': '🇮🇹', 'FR': '🇫🇷'
+    'NL': '🇳🇱', 'CN': '🇨🇳', 'DE': '🇩🇪', 'US': '🇺🇸', 'IT': '🇮🇹', 'FR': '🇫🇷', 'JP': '🇯🇵', 'KR': '🇰🇷', 'GB': '🇬🇧'
   };
 
-  const origin = product.originCountry || 'NL';
-  const delivery = product.estimatedDelivery || '2-4 werkdagen';
+  // Mapeamento robusto para ler tanto camelCase (mock) quanto snake_case (DB)
+  const origin = product.originCountry || product.origin_country || 'NL';
+  const delivery = product.estimatedDelivery || product.estimated_delivery || '2-4 werkdagen';
 
   if (showSuccess) return null;
 
@@ -94,7 +95,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
             {[
               { label: 'Conditie', val: product.condition.replace('_', ' ') },
               { label: 'Categorie', val: product.category },
-              { label: 'Herkomst', val: `${flags[origin] || ''} ${origin}` },
+              { label: 'Herkomst', val: `${flags[origin] || '🌍'} ${origin}` },
               { label: 'Levertijd', val: delivery }
             ].map((item, idx) => (
               <div key={idx} className="p-8 bg-white rounded-[40px] border border-slate-100 shadow-sm">

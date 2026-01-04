@@ -21,28 +21,37 @@ export enum ProductStatus {
 export interface Product {
   id: string;
   sellerId: string;
+  seller_id?: string; // DB mapping
   title: string;
   description: string;
   price: number;
   condition: ProductCondition;
   status: ProductStatus;
   category: string;
-  subcategory?: string; // Novo campo
+  subcategory?: string; 
   image: string;
   commissionRate: number;
+  commission_rate?: number; // DB mapping
   commissionAmount: number;
+  commission_amount?: number; // DB mapping
   sku: string;
   barcode: string;
   weight: number;
   dimensions?: string;
   originCountry?: string;
+  origin_country?: string; // DB mapping
   estimatedDelivery?: string;
+  estimated_delivery?: string; // DB mapping
   shippingMethods: string[];
+  shipping_methods?: string[]; // DB mapping
   warehouseLocation?: string;
+  warehouse_location?: string; // DB mapping
   supplierId?: string;
   is3DModel: boolean;
+  is_3d_model?: boolean; // DB mapping
   modelGLB?: string;
   createdAt?: string;
+  created_at?: string; // DB mapping
   verification?: VerificationResult;
   gallery?: string[];
   size?: string;
