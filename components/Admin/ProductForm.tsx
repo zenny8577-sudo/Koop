@@ -3,7 +3,7 @@ import { Product, ProductCondition, ProductStatus } from '../../types';
 import { supabase } from '../../src/integrations/supabase/client';
 
 interface ProductFormProps {
-  initialData?: Partial<Product>;
+  initialData?: Partial<Product> | any; // Allow any to handle snake_case properties from DB
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
@@ -29,8 +29,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     image: '',
     gallery: [] as string[],
     sku: '',
-    originCountry: 'NL',
-    estimatedDelivery: '1-3 werkdagen',
+    // Mapeamento inteligente para ler tanto camelCase quanto snake_case
+    originCountry: initialData?.originCountry || initialData?.origin_country || 'NL',
+    estimatedDelivery: initialData?.estimatedDelivery || initialData?.estimated_delivery || '1-3 werkdagen',
     ...initialData
   });
   const [keepOpen, setKeepOpen] = useState(false);
@@ -89,8 +90,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       price: parseFloat(formData.price as string),
       sku: formData.sku || `SKU-${Date.now()}`,
       status: ProductStatus.ACTIVE,
-      origin_country: formData.originCountry,
-      estimated_delivery: formData.estimatedDelivery
+      // Garante que os campos de logística são passados corretamente
+      originCountry: formData.originCountry,
+      estimatedDelivery: formData.estimatedDelivery
     });
 
     if (keepOpen) {
@@ -109,7 +111,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 animate-fadeIn">
-      {/* ... Info Básica (Titel, Descrição) Mantida igual ... */}
+      {/* Basis Informatie */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Basis Informatie</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -157,7 +159,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         </div>
       </div>
 
-      {/* Logística Nova */}
+      {/* Logística */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Logistiek</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -183,6 +185,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         </div>
       </div>
 
+      {/* Prijs & Voorraad */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Prijs & Voorraad</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -217,6 +220,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
         </div>
       </div>
 
+      {/* Media */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Media</h3>
         
@@ -235,14 +239,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                 </div>
             </div>
             {formData.image ? (
-              <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10" alt="Preview" />
+              <img src={formData.image} className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0 bg-white" alt="Preview" />
             ) : (
-                <input 
-                  value={formData.image}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="flex-1 bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-                  placeholder="Of plak URL..."
-                />
+                <div className="w-20 h-20 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300">
+                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
             )}
           </div>
         </div>

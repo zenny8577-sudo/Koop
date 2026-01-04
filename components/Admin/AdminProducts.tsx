@@ -20,8 +20,7 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || 'admin_local';
 
-      // Construir payload explicitamente para garantir que apenas colunas válidas do DB sejam enviadas
-      // (Supabase não aceita chaves camelCase que não existam como colunas)
+      // Construir payload com mapeamento correto para snake_case do banco
       const productPayload = {
         title: formData.title,
         description: formData.description,
@@ -39,6 +38,8 @@ const AdminProducts: React.FC<AdminProductsProps> = ({ products, loading, onRefr
         commission_rate: 0.15,
         commission_amount: formData.price * 0.15,
         shipping_methods: ['postnl', 'dhl'],
+        origin_country: formData.originCountry, // Adicionado
+        estimated_delivery: formData.estimatedDelivery, // Adicionado
         updated_at: new Date().toISOString()
       };
 
