@@ -101,7 +101,6 @@ serve(async (req) => {
         verification_status: 'verified',
         first_name: 'Breno',
         last_name: 'Diogo',
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'id'
@@ -112,7 +111,8 @@ serve(async (req) => {
     }
 
     // Generate session token for immediate login
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.signInWithPassword({
+    // FIXED: signInWithPassword is on auth, NOT auth.admin
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.signInWithPassword({
       email: email,
       password: password
     })
