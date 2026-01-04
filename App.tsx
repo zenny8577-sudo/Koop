@@ -31,10 +31,10 @@ const App: React.FC = () => {
   const [filters, setFilters] = useState({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
   const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
   
-  const { user, loading: authLoading, error: authError, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
-  // Load mock data
+  // Load mock products
   useEffect(() => {
     setProductsData({ data: mockProducts, total: mockProducts.length });
   }, []);
@@ -45,29 +45,28 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // Função para determinar dashboard
-  const getDashboardView = (role: UserRole | string): ViewState => {
-    const normalizedRole = role?.toUpperCase() || 'BUYER';
-    
-    if (normalizedRole === 'ADMIN') return 'admin';
-    if (normalizedRole === 'SELLER') return 'seller-dashboard';
-    if (normalizedRole === 'BUYER') return 'buyer-dashboard';
-    
-    return 'home';
+  // Lógica Central de Roteamento
+  const getDashboardView = (role: string | undefined): ViewState => {
+    const r = (role || 'BUYER').toUpperCase();
+    console.log(`🧭 Routing Decision for Role: ${r}`);
+    if (r === 'ADMIN') return 'admin';
+    if (r === 'SELLER') return 'seller-dashboard';
+    return 'buyer-dashboard';
   };
 
-  // REDIRECIONAMENTO AUTOMÁTICO
-  // Se o usuário carregar a página já logado, mande-o para o dashboard (a menos que esteja no shop/checkout)
+  // Redirecionamento Automático (Estado Inicial / Refresh)
   useEffect(() => {
-    if (user && !authLoading) {
-      if (view === 'home' || view === 'sell') {
+    if (!authLoading && user) {
+      // Só redireciona se estiver em páginas "neutras"
+      if (['home', 'sell', 'about', 'contact'].includes(view)) {
         const target = getDashboardView(user.role);
-        console.log("Auto-redirecting logged in user to:", target);
+        console.log(`🔄 Auto-Redirecting to ${target}`);
         setView(target);
       }
     }
   }, [user, authLoading]);
 
+  // Handlers
   const handleAddToCart = (product: Product) => {
     addToCart(product);
     setIsCartOpen(true);
@@ -78,43 +77,32 @@ const App: React.FC = () => {
       setIsLoginOpen(true);
       return;
     }
-    console.log('Toggle wishlist for product:', productId);
+    console.log('Wishlist toggle:', productId);
   };
 
   const handleUpdateQuantity = (productId: string, delta: number) => {
     const item = cart.find(item => item.product.id === productId);
-    if (item) {
-      updateQuantity(productId, item.quantity + delta);
-    }
-  };
-
-  const handleRemoveFromCart = (productId: string) => {
-    removeFromCart(productId);
+    if (item) item && updateQuantity(productId, item.quantity + delta);
   };
 
   const handleCheckoutComplete = async (address: Address, paymentMethod: string) => {
-    try {
-      await clearCart();
-      setView('success');
-    } catch (error) {
-      console.error('Checkout completion error:', error);
-    }
+    await clearCart();
+    setView('success');
   };
 
-  const handleLoginSuccess = async (loggedInUser: User) => {
-    console.log('Login success handled for:', loggedInUser);
+  // --- O PULO DO GATO: REDIRECIONAMENTO EXPLÍCITO ---
+  const handleLoginSuccess = (loggedInUser: User) => {
+    console.log('🚀 Login Success Triggered. User:', loggedInUser);
     setIsLoginOpen(false);
-    const targetView = getDashboardView(loggedInUser.role);
-    setView(targetView);
+    
+    // Força a atualização da view imediatamente
+    const nextView = getDashboardView(loggedInUser.role);
+    setView(nextView);
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut();
-      setView('home');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    await signOut();
+    setView('home');
   };
 
   const navigateToDetail = (product: Product) => {
@@ -122,130 +110,74 @@ const App: React.FC = () => {
     setView('detail');
   };
 
-  const cartCount = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
-
-  const resetFilters = () => {
-    setFilters({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
-  };
-
-  const removeFilter = (key: keyof typeof filters) => {
-    if (key === 'category') setFilters({ ...filters, category: 'All' });
-    if (key === 'search') setFilters({ ...filters, search: '' });
-  };
-
-  const handleNavigate = (newView: string) => {
-    setView(newView as ViewState);
-  };
-
-  if (authLoading || cartLoading) {
+  // Loading Screen
+  if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FF4F00]"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center space-y-4">
+           <div className="w-16 h-16 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin mx-auto"></div>
+           <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Authenticating...</p>
+        </div>
       </div>
     );
   }
 
-  if (view === 'checkout') {
-    return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
-  }
+  // Renderização Condicional Limpa
+  const renderMainContent = () => {
+    if (view === 'checkout') return <CheckoutView items={cart} onBack={() => setView('shop')} onComplete={handleCheckoutComplete} />;
+    if (view === 'success') return <SuccessView onNavigate={(v) => setView(v as ViewState)} />;
+    
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar 
+          onHome={() => setView('home')} 
+          onShop={() => setView('shop')} 
+          onAdmin={() => setView('admin')} 
+          onOpenCart={() => setIsCartOpen(true)} 
+          onOpenLogin={() => setIsLoginOpen(true)} 
+          onDashboard={() => user ? setView(getDashboardView(user.role)) : setIsLoginOpen(true)} 
+          onSell={() => setView('sell')} 
+          onLogout={handleLogout} 
+          user={user} 
+          cartCount={cart.reduce((acc, item) => acc + (item.quantity || 0), 0)} 
+        />
+        
+        <CartDrawer 
+          isOpen={isCartOpen} 
+          onClose={() => setIsCartOpen(false)} 
+          items={cart} 
+          onUpdateQuantity={handleUpdateQuantity} 
+          onRemove={removeFromCart} 
+          onCheckout={() => {
+            setIsCartOpen(false);
+            user ? setView('checkout') : setIsLoginOpen(true);
+          }} 
+        />
+        
+        <LoginView 
+          isOpen={isLoginOpen} 
+          onClose={() => setIsLoginOpen(false)} 
+          onSuccess={handleLoginSuccess} 
+        />
+        
+        <main className="min-h-screen">
+          {view === 'home' && <HomeView products={productsData.data} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onNavigate={(v) => setView(v as ViewState)} />}
+          {view === 'shop' && <ShopView products={productsData.data} filters={filters} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onFilterChange={setFilters} onResetFilters={resetFilters} onRemoveFilter={removeFilter} />}
+          {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
+          {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
+          {view === 'seller-dashboard' && user && <UserDashboard user={user} />}
+          {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
+          {view === 'admin' && user && <AdminDashboard />}
+          {view === 'detail' && selectedProduct && <ProductDetailView product={selectedProduct} user={user} onBack={() => setView('shop')} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} />}
+          {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
+        </main>
+        
+        <Footer onNavigate={(v) => setView(v as ViewState)} />
+      </div>
+    );
+  };
 
-  return (
-    <div className="min-h-screen bg-white">
-      <Navbar 
-        onHome={() => setView('home')} 
-        onShop={() => setView('shop')} 
-        onAdmin={() => setView('admin')} 
-        onOpenCart={() => setIsCartOpen(true)} 
-        onOpenLogin={() => setIsLoginOpen(true)} 
-        onDashboard={() => {
-          if (user) {
-            setView(getDashboardView(user.role));
-          } else {
-            setIsLoginOpen(true);
-          }
-        }} 
-        onSell={() => setView('sell')} 
-        onLogout={handleLogout} 
-        user={user} 
-        cartCount={cartCount} 
-      />
-      
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        items={cart} 
-        onUpdateQuantity={handleUpdateQuantity} 
-        onRemove={handleRemoveFromCart} 
-        onCheckout={() => {
-          setIsCartOpen(false);
-          if (!user) {
-            setIsLoginOpen(true);
-            return;
-          }
-          setView('checkout');
-        }} 
-      />
-      
-      <LoginView 
-        isOpen={isLoginOpen} 
-        onClose={() => setIsLoginOpen(false)} 
-        onSuccess={handleLoginSuccess} 
-      />
-      
-      <main className="min-h-screen">
-        {view === 'home' && (
-          <HomeView 
-            products={productsData.data} 
-            user={user} 
-            onViewProduct={navigateToDetail} 
-            onAddToCart={handleAddToCart} 
-            onToggleWishlist={handleToggleWishlist} 
-            onNavigate={handleNavigate} 
-          />
-        )}
-        
-        {view === 'success' && <SuccessView onNavigate={handleNavigate} />}
-        
-        {view === 'shop' && (
-          <ShopView 
-            products={productsData.data} 
-            filters={filters} 
-            user={user} 
-            onViewProduct={navigateToDetail} 
-            onAddToCart={handleAddToCart} 
-            onToggleWishlist={handleToggleWishlist} 
-            onFilterChange={setFilters} 
-            onResetFilters={resetFilters} 
-            onRemoveFilter={removeFilter} 
-          />
-        )}
-        
-        {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
-        
-        {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
-        
-        {view === 'seller-dashboard' && user && <UserDashboard user={user} />}
-        
-        {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
-        
-        {view === 'admin' && user && <AdminDashboard />}
-        
-        {view === 'detail' && selectedProduct && (
-          <ProductDetailView 
-            product={selectedProduct} 
-            user={user} 
-            onBack={() => setView('shop')} 
-            onAddToCart={handleAddToCart} 
-            onToggleWishlist={handleToggleWishlist} 
-          />
-        )}
-        
-        {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
-      </main>
-      
-      {view !== 'success' && <Footer onNavigate={handleNavigate} />}
-    </div>
-  );
+  return renderMainContent();
 };
 
 export default App;
