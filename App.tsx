@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useCart } from './hooks/useCart';
-import { ThemeProvider } from './context/ThemeContext'; // Import ThemeProvider
 import Navbar from './components/Store/Navbar';
 import Footer from './components/Store/Footer';
 import CartDrawer from './components/Store/CartDrawer';
@@ -29,7 +28,7 @@ const AppContent: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [filters, setFilters] = useState({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' });
+  const [filters, setFilters] = useState({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest', subcategory: '' });
   const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
   
   const { user, loading: authLoading, signOut } = useAuth();
@@ -100,11 +99,9 @@ const AppContent: React.FC = () => {
     setView(nextView);
   };
 
-  // LOGOUT FIX: Force view change and wait for signout
   const handleLogout = async () => {
-    setView('home'); // Immediate UI feedback
+    setView('home'); 
     await signOut();
-    // No need to do anything else, useAuth will update user state to null
   };
 
   const navigateToDetail = (product: Product) => {
@@ -114,7 +111,7 @@ const AppContent: React.FC = () => {
 
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-black">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-center space-y-4">
            <div className="w-16 h-16 border-4 border-[#FF4F00] border-t-transparent rounded-full animate-spin mx-auto"></div>
            <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Loading Koop...</p>
@@ -128,7 +125,7 @@ const AppContent: React.FC = () => {
     if (view === 'success') return <SuccessView onNavigate={(v) => setView(v as ViewState)} />;
     
     return (
-      <div className="min-h-screen bg-white dark:bg-black transition-colors duration-500 text-slate-900 dark:text-white">
+      <div className="min-h-screen bg-white text-slate-900">
         <Navbar 
           onHome={() => setView('home')} 
           onShop={() => setView('shop')} 
@@ -138,6 +135,7 @@ const AppContent: React.FC = () => {
           onDashboard={() => user ? setView(getDashboardView(user.role)) : setIsLoginOpen(true)} 
           onSell={() => setView('sell')} 
           onLogout={handleLogout} 
+          onWishlist={() => setView('shop')}
           user={user} 
           cartCount={cart.reduce((acc, item) => acc + (item.quantity || 0), 0)} 
         />
@@ -162,7 +160,7 @@ const AppContent: React.FC = () => {
         
         <main className="min-h-screen">
           {view === 'home' && <HomeView products={productsData.data} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onNavigate={(v) => setView(v as ViewState)} />}
-          {view === 'shop' && <ShopView products={productsData.data} filters={filters} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onFilterChange={setFilters} onResetFilters={() => setFilters({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest' })} onRemoveFilter={(key) => setFilters({...filters, [key]: ''})} />}
+          {view === 'shop' && <ShopView products={productsData.data} filters={filters} user={user} onViewProduct={navigateToDetail} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} onFilterChange={setFilters} onResetFilters={() => setFilters({ search: '', category: 'All', condition: 'All', minPrice: 0, maxPrice: 10000, sortBy: 'newest', subcategory: '' })} onRemoveFilter={(key) => setFilters({...filters, [key]: ''})} />}
           {view === 'sell' && <SellInfoPage onStartRegistration={() => setView('sell-onboarding')} />}
           {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
           {view === 'seller-dashboard' && user && <UserDashboard user={user} />}
@@ -181,9 +179,7 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <ThemeProvider>
-    <AppContent />
-  </ThemeProvider>
+  <AppContent />
 );
 
 export default App;
