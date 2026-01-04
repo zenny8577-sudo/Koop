@@ -55,11 +55,18 @@ const InfoPages: React.FC<InfoPageProps> = ({ type }) => {
             <p className="text-slate-500 text-lg">Heeft u vragen over een specifiek item of wilt u een grote collectie verkopen? Ons team staat klaar.</p>
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">E-mail</p>
-              <p className="text-2xl font-black text-slate-900">support@koop.nl</p>
+              <a href="mailto:info@brenodiogo.com" className="text-2xl font-black text-slate-900 hover:text-[#FF4F00] transition-colors">info@brenodiogo.com</a>
             </div>
             <div className="space-y-4">
               <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">Hoofdkantoor</p>
-              <p className="text-lg font-bold text-slate-900 leading-relaxed">Keizersgracht 123<br />1015 CJ Amsterdam<br />Nederland</p>
+              <div className="text-lg font-bold text-slate-900 leading-relaxed">
+                <a href="https://brenodiogo.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#FF4F00] transition-colors block">
+                  brenodiogo.com
+                </a>
+                <a href="mailto:info@brenodiogo.com" className="hover:text-[#FF4F00] transition-colors block mt-1">
+                  info@brenodiogo.com
+                </a>
+              </div>
             </div>
           </div>
           <form className="bg-slate-900 p-12 rounded-[60px] space-y-6 shadow-2xl">
