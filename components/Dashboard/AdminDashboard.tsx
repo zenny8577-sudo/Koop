@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/integrations/supabase/client';
 import { Product, User, ProductStatus, ProductCondition } from '../../types';
+import { AnalyticsService } from '../../services/analyticsService';
 import ProductForm from '../Admin/ProductForm';
 import { mockProducts } from '../../services/mockData';
 
@@ -108,7 +109,6 @@ const AdminDashboard: React.FC = () => {
       setProducts(products.filter(p => p.id !== productId));
     } catch (err) {
       alert('Kan niet verwijderen (Mock data of Database fout)');
-      // Remove da UI localmente se for mock
       setProducts(products.filter(p => p.id !== productId));
     }
   };
@@ -138,7 +138,6 @@ const AdminDashboard: React.FC = () => {
       if (newCategory && !categories.includes(newCategory)) {
           setCategories([...categories, newCategory]);
           setNewCategory('');
-          // Em um app real, salvaríamos isso em uma tabela 'categories'
       }
   };
 
@@ -157,32 +156,95 @@ const AdminDashboard: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id || 'admin_local';
 
-      const basePrice = Math.floor(Math.random() * 50) + 20; 
+      console.log('Iniciando importação via Edge Function para:', importUrl);
+
+      // Chamada para a Edge Function
+      const { data: aiProduct, error: fnError } = await supabase.functions.invoke('clone-product', {
+        body: { url: importUrl }
+      });
+
+      if (fnError) throw new Error(fnError.message || 'Functie aanroep mislukt. Controleer OPENROUTER_API_KEY.');
+      if (!aiProduct) throw new Error('Geen data ontvangen van AI.');
+
+      // Aplica o markup de preço
+      const basePrice = aiProduct.price || 50;
       const finalPrice = basePrice * (1 + (priceMarkup / 100));
 
-      const mockProduct = {
-        title: "Imported Item (Demo)",
-        description: `Geïmporteerd van: ${importUrl}.\nOriginele Prijs: €${basePrice}.\nMarge: ${priceMarkup}%`,
+      const newProduct = {
+        title: aiProduct.title || "Geïmporteerd Item",
+        description: aiProduct.description || `Geïmporteerd van: ${importUrl}`,
         price: parseFloat(finalPrice.toFixed(2)),
-        category: 'Gadgets',
+        category: aiProduct.category || 'Gadgets',
         condition: ProductCondition.NEW,
-        image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
+        image: aiProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=800',
         seller_id: userId,
         status: ProductStatus.ACTIVE,
         sku: `DROP-${Date.now()}`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        commission_rate: 0.15,
+        commission_amount: parseFloat(finalPrice.toFixed(2)) * 0.15,
+        shipping_methods: ['postnl']
       };
 
-      const { error } = await supabase.from('products').insert([mockProduct]);
+      const { error } = await supabase.from('products').insert([newProduct]);
       if (error) throw error;
 
       await loadData();
       setImportUrl('');
-      alert(`Product geïmporteerd!`);
+      alert(`Product "${newProduct.title}" succesvol geïmporteerd!`);
     } catch (err) {
-      alert('Fout: ' + (err as Error).message);
+      console.error(err);
+      alert('Import Mislukt: ' + (err as Error).message);
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleCSVImport = async () => {
+    if (!csvContent) return;
+    setIsImporting(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || 'admin_local';
+
+      const lines = csvContent.split('\n');
+      const productsToInsert = [];
+
+      for (let line of lines) {
+        const [title, price, category, image] = line.split(',');
+        if (title && price) {
+            productsToInsert.push({
+                title: title.trim(),
+                price: parseFloat(price.trim()),
+                category: category?.trim() || 'Overig',
+                image: image?.trim() || 'https://via.placeholder.com/300',
+                seller_id: userId,
+                condition: ProductCondition.NEW,
+                status: ProductStatus.ACTIVE,
+                description: 'Geïmporteerd via Bulk CSV',
+                sku: `BULK-${Math.floor(Math.random() * 10000)}`,
+                created_at: new Date().toISOString(),
+                commission_rate: 0.15,
+                commission_amount: parseFloat(price.trim()) * 0.15,
+                shipping_methods: ['postnl']
+            });
+        }
+      }
+
+      if (productsToInsert.length > 0) {
+          const { error } = await supabase.from('products').insert(productsToInsert);
+          if (error) throw error;
+          await loadData();
+          setCsvContent('');
+          alert(`${productsToInsert.length} producten succesvol geïmporteerd!`);
+      } else {
+          alert("Geen geldige producten gevonden in CSV.");
+      }
+    } catch (err) {
+        alert('Fout in CSV: ' + (err as Error).message);
+    } finally {
+        setIsImporting(false);
     }
   };
 
@@ -202,7 +264,7 @@ const AdminDashboard: React.FC = () => {
               { id: 'overview', label: 'Overzicht' },
               { id: 'products', label: 'Producten' },
               { id: 'categories', label: 'Categorieën' },
-              { id: 'import', label: 'Importeren' },
+              { id: 'import', label: 'Dropshipping & Bulk' },
               { id: 'users', label: 'Gebruikers' }
             ].map(tab => (
               <button 
@@ -283,9 +345,9 @@ const AdminDashboard: React.FC = () => {
            <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-3 mb-2">
                  <span className="w-8 h-8 flex items-center justify-center bg-purple-50 text-purple-600 rounded-full">⚡</span>
-                 <h3 className="text-xl font-black uppercase tracking-tighter">Smart Clone (URL)</h3>
+                 <h3 className="text-xl font-black uppercase tracking-tighter">Smart Clone (IA)</h3>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Plak de link (AliExpress, Temu, Amazon) om te klonen.</p>
+              <p className="text-xs text-slate-500 font-medium">Plak de link (AliExpress, Temu, Amazon) om te klonen. De AI (Google Gemini via OpenRouter) zal de details ophalen.</p>
               
               <form onSubmit={handleSmartImport} className="space-y-4">
                  <div>
@@ -313,9 +375,29 @@ const AdminDashboard: React.FC = () => {
                  </div>
 
                  <button disabled={isImporting} className="w-full py-4 bg-purple-600 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all disabled:opacity-50">
-                    {isImporting ? 'Klonen...' : 'Importeren & Prijs Aanpassen'}
+                    {isImporting ? 'IA Analyseren & Importeren...' : 'Start Smart Clone'}
                  </button>
               </form>
+           </div>
+
+           {/* Bulk CSV Import */}
+           <div className="bg-slate-900 p-10 rounded-[40px] shadow-xl text-white space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                 <span className="w-8 h-8 flex items-center justify-center bg-white/10 text-white rounded-full">📊</span>
+                 <h3 className="text-xl font-black uppercase tracking-tighter">Massa Import (CSV)</h3>
+              </div>
+              <p className="text-xs text-white/60 font-medium">Plak hier uw CSV-gegevens. Formaat: Titel,Prijs,Categorie,AfbeeldingURL</p>
+              
+              <textarea 
+                 value={csvContent}
+                 onChange={e => setCsvContent(e.target.value)}
+                 placeholder="iPhone 15, 999, Elektronica, http://img...\nEames Stoel, 450, Design, http://img..."
+                 className="w-full h-40 bg-white/10 border-none rounded-2xl p-4 text-xs font-mono text-white placeholder:text-white/20 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+              />
+              
+              <button onClick={handleCSVImport} disabled={isImporting} className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-emerald-400 transition-all disabled:opacity-50">
+                  {isImporting ? 'Verwerken...' : 'CSV Lijst Verwerken'}
+              </button>
            </div>
         </div>
       )}
