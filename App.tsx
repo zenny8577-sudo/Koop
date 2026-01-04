@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useCart } from './hooks/useCart';
 import Navbar from './components/Store/Navbar';
@@ -14,7 +14,7 @@ import SellRegistrationForm from './components/Auth/SellRegistrationForm';
 import SellInfoPage from './components/Store/SellInfoPage';
 import InfoPages from './components/Store/InfoPages';
 import { supabase } from './src/integrations/supabase/client';
-import { Product, User, UserRole, CartItem, Address, ProductStatus } from './types';
+import { Product, User, Address } from './types';
 import { AnalyticsService } from './services/analyticsService';
 import HomeView from './components/App/HomeView';
 import ShopView from './components/App/ShopView';
@@ -32,31 +32,33 @@ const AppContent: React.FC = () => {
   const [productsData, setProductsData] = useState<{ data: Product[], total: number }>({ data: [], total: 0 });
   
   const { user, loading: authLoading, signOut } = useAuth();
-  const { cart, loading: cartLoading, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart(user?.id || null);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('status', 'ACTIVE');
+  // Função centralizada para recarregar dados sem F5
+  const fetchProducts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('status', 'ACTIVE')
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        if (data && data.length > 0) {
-          setProductsData({ data, total: data.length });
-        } else {
-          setProductsData({ data: mockProducts, total: mockProducts.length });
-        }
-      } catch (err) {
-        console.error("Using Mock Data due to error or empty DB.", err);
+      if (data && data.length > 0) {
+        setProductsData({ data, total: data.length });
+      } else {
         setProductsData({ data: mockProducts, total: mockProducts.length });
       }
-    };
-
-    fetchProducts();
+    } catch (err) {
+      console.error("Using Mock Data due to error or empty DB.", err);
+      setProductsData({ data: mockProducts, total: mockProducts.length });
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   useEffect(() => {
     AnalyticsService.pageView(view);
@@ -105,11 +107,13 @@ const AppContent: React.FC = () => {
   };
 
   const navigateToDetail = (product: Product) => {
+    if (!product) return;
     setSelectedProduct(product);
     setView('detail');
   };
 
-  if (authLoading) {
+  // Prevent infinite loading screen if auth hangs, but allow UI to show if we have data or partial state
+  if (authLoading && !productsData.data.length) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-center space-y-4">
@@ -165,8 +169,20 @@ const AppContent: React.FC = () => {
           {view === 'sell-onboarding' && <SellRegistrationForm onSuccess={() => setView('seller-dashboard')} />}
           {view === 'seller-dashboard' && user && <UserDashboard user={user} />}
           {view === 'buyer-dashboard' && user && <BuyerDashboard user={user} />}
-          {view === 'admin' && user && <AdminDashboard />}
-          {view === 'detail' && selectedProduct && <ProductDetailView product={selectedProduct} user={user} onBack={() => setView('shop')} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} />}
+          
+          {/* Admin Dashboard recebe função de refresh para atualizar loja em tempo real */}
+          {view === 'admin' && user && <AdminDashboard onDataChange={fetchProducts} />}
+          
+          {view === 'detail' && selectedProduct ? (
+             <ProductDetailView product={selectedProduct} user={user} onBack={() => setView('shop')} onAddToCart={handleAddToCart} onToggleWishlist={handleToggleWishlist} />
+          ) : view === 'detail' && !selectedProduct ? (
+             // Fallback caso refresh na página de detalhes perca o estado
+             <div className="flex flex-col items-center justify-center min-h-[50vh]">
+                <p>Product niet gevonden.</p>
+                <button onClick={() => setView('shop')} className="text-[#FF4F00] underline mt-4">Terug naar winkel</button>
+             </div>
+          ) : null}
+
           {(['about', 'faq', 'contact', 'privacy', 'terms', 'cookies'].includes(view)) && <InfoPages type={view as any} />}
         </main>
         

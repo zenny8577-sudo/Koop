@@ -9,7 +9,6 @@ interface ProductFormProps {
   isLoading: boolean;
 }
 
-// Mapa de Categorias e Subcategorias
 const CATEGORY_MAP: Record<string, string[]> = {
   'Elektronica': ['Smartphones', 'Laptops', 'Audio', 'Camera', 'Gaming', 'TV & Home Cinema'],
   'Design': ['Stoelen', 'Tafels', 'Verlichting', 'Kasten', 'Decoratie', 'Banken'],
@@ -30,13 +29,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
     image: '',
     gallery: [] as string[],
     sku: '',
-    stock: 1,
+    originCountry: 'NL',
+    estimatedDelivery: '1-3 werkdagen',
     ...initialData
   });
   const [keepOpen, setKeepOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Reset subcategory when category changes
   useEffect(() => {
     if (formData.category && !CATEGORY_MAP[formData.category]?.includes(formData.subcategory)) {
       setFormData(prev => ({ ...prev, subcategory: CATEGORY_MAP[formData.category]?.[0] || '' }));
@@ -89,7 +88,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
       ...formData,
       price: parseFloat(formData.price as string),
       sku: formData.sku || `SKU-${Date.now()}`,
-      status: ProductStatus.ACTIVE
+      status: ProductStatus.ACTIVE,
+      origin_country: formData.originCountry,
+      estimated_delivery: formData.estimatedDelivery
     });
 
     if (keepOpen) {
@@ -108,9 +109,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 animate-fadeIn">
+      {/* ... Info Básica (Titel, Descrição) Mantida igual ... */}
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Basis Informatie</h3>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Product Titel</label>
@@ -119,10 +120,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
               className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-              placeholder="Bijv. iPhone 15 Pro Max"
             />
           </div>
-          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Categorie</label>
@@ -131,9 +130,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                 onChange={e => setFormData({...formData, category: e.target.value})}
                 className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none cursor-pointer dark:text-white"
               >
-                {Object.keys(CATEGORY_MAP).map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {Object.keys(CATEGORY_MAP).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="space-y-2">
@@ -144,14 +141,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                 className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none cursor-pointer dark:text-white"
               >
                 <option value="">Selecteer...</option>
-                {CATEGORY_MAP[formData.category]?.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {CATEGORY_MAP[formData.category]?.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
         </div>
-
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Omschrijving</label>
           <textarea 
@@ -159,14 +153,38 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
             value={formData.description}
             onChange={e => setFormData({...formData, description: e.target.value})}
             className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-medium outline-none h-32 dark:text-white"
-            placeholder="Beschrijf het product gedetailleerd..."
           />
+        </div>
+      </div>
+
+      {/* Logística Nova */}
+      <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
+        <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Logistiek</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Herkomst (Landcode)</label>
+              <input 
+                value={formData.originCountry}
+                onChange={e => setFormData({...formData, originCountry: e.target.value.toUpperCase()})}
+                className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
+                placeholder="NL, CN, DE"
+                maxLength={2}
+              />
+           </div>
+           <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Levertijd</label>
+              <input 
+                value={formData.estimatedDelivery}
+                onChange={e => setFormData({...formData, estimatedDelivery: e.target.value})}
+                className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
+                placeholder="Bijv. 1-3 werkdagen"
+              />
+           </div>
         </div>
       </div>
 
       <div className="bg-slate-50 dark:bg-slate-900 p-8 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
         <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Prijs & Voorraad</h3>
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Prijs (€)</label>
@@ -176,20 +194,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
               value={formData.price}
               onChange={e => setFormData({...formData, price: e.target.value})}
               className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-              placeholder="0.00"
             />
           </div>
-          
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">SKU (Optioneel)</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">SKU</label>
             <input 
               value={formData.sku}
               onChange={e => setFormData({...formData, sku: e.target.value})}
               className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
-              placeholder="AUTO-GEN"
             />
           </div>
-
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-4">Conditie</label>
             <select 
@@ -197,9 +211,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
               onChange={e => setFormData({...formData, condition: e.target.value as ProductCondition})}
               className="w-full bg-white dark:bg-white/5 border-none rounded-2xl px-6 py-4 text-sm font-bold outline-none dark:text-white"
             >
-              {Object.values(ProductCondition).map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              {Object.values(ProductCondition).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
@@ -262,41 +274,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, onCanc
                  </button>
                </div>
              ))}
-             {(!formData.gallery || formData.gallery.length === 0) && (
-               <div className="w-full py-4 text-center text-[10px] font-bold text-slate-300 uppercase tracking-widest border-2 border-dashed border-slate-100 rounded-2xl">
-                 Geen extra afbeeldingen
-               </div>
-             )}
            </div>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 pt-4">
-        <button 
-          type="button" 
-          onClick={onCancel}
-          className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"
-        >
-          Annuleren
-        </button>
-        
+        <button type="button" onClick={onCancel} className="flex-1 py-4 bg-white dark:bg-white/5 border-2 border-slate-100 dark:border-white/10 text-slate-400 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-slate-50 transition-all">Annuleren</button>
         <div className="flex-1 flex gap-4">
-            <button 
-            type="submit" 
-            onClick={() => setKeepOpen(true)}
-            disabled={isLoading || isUploading}
-            className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all"
-            >
-            Opslaan & Nog een
-            </button>
-            <button 
-            type="submit" 
-            onClick={() => setKeepOpen(false)}
-            disabled={isLoading || isUploading}
-            className="flex-1 py-4 bg-purple-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-xl shadow-purple-500/20"
-            >
-            {isLoading ? 'Opslaan...' : 'Publiceren'}
-            </button>
+            <button type="submit" onClick={() => setKeepOpen(true)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-100 text-purple-700 font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-200 transition-all">Opslaan & Nog een</button>
+            <button type="submit" onClick={() => setKeepOpen(false)} disabled={isLoading || isUploading} className="flex-1 py-4 bg-purple-600 text-white font-black rounded-3xl uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-xl shadow-purple-500/20">{isLoading ? 'Opslaan...' : 'Publiceren'}</button>
         </div>
       </div>
     </form>

@@ -14,12 +14,11 @@ serve(async (req) => {
     const { url, apiKey } = await req.json()
     
     if (!url || !url.startsWith('http')) {
-      throw new Error('Ongeldige URL. Zorg ervoor dat de link begint met http:// of https://')
+      throw new Error('Ongeldige URL.')
     }
 
     console.log(`Processing URL: ${url}`)
 
-    // 1. Fetch com Headers de Navegador Real (Bypass básico de bot protection)
     let html = ''
     try {
       const pageResponse = await fetch(url, {
@@ -27,20 +26,13 @@ serve(async (req) => {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9,nl;q=0.8',
-          'Referer': 'https://www.google.com/'
         }
       })
       if (pageResponse.ok) {
         html = await pageResponse.text()
-      } else {
-        console.warn(`Fetch failed with status: ${pageResponse.status}`)
       }
-    } catch (fetchError) {
-      console.warn("Failed to fetch page content directly:", fetchError)
-    }
+    } catch (e) { console.warn("Fetch failed", e) }
 
-    // 2. Extração Inteligente (JSON-LD + Meta Tags)
-    // Tenta encontrar dados estruturados de Produto (Schema.org)
     let jsonLdData: any = {}
     try {
       const jsonLdMatches = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)
@@ -49,18 +41,31 @@ serve(async (req) => {
           try {
             const content = match.replace(/<script type="application\/ld\+json">|<\/script>/g, '')
             const parsed = JSON.parse(content)
-            // Procura por @type Product (pode ser um objeto ou array)
             const product = Array.isArray(parsed) 
               ? parsed.find(i => i['@type'] === 'Product') 
               : (parsed['@type'] === 'Product' ? parsed : null)
             
             if (product) {
+              // Handle image as string or array
+              let images = [];
+              if (Array.isArray(product.image)) {
+                images = product.image.filter(img => typeof img === 'string');
+                // Se for array de objetos (ImageObject)
+                if (images.length === 0 && product.image.length > 0) {
+                    images = product.image.map((img: any) => img.url || img.contentUrl).filter(Boolean);
+                }
+              } else if (typeof product.image === 'string') {
+                images = [product.image];
+              } else if (typeof product.image === 'object' && product.image.url) {
+                images = [product.image.url];
+              }
+
               jsonLdData = {
                 title: product.name,
-                image: Array.isArray(product.image) ? product.image[0] : product.image,
+                image: images[0] || '',
+                gallery: images,
                 description: product.description,
                 price: product.offers?.price || product.offers?.[0]?.price || product.offers?.lowPrice,
-                currency: product.offers?.priceCurrency || product.offers?.[0]?.priceCurrency
               }
               break
             }
@@ -69,118 +74,42 @@ serve(async (req) => {
       }
     } catch (e) { console.log('JSON-LD extraction error', e) }
 
-    // Fallback para Meta Tags se JSON-LD falhar
     const getMeta = (prop: string) => {
       const match = html.match(new RegExp(`<meta property="${prop}" content="([^"]*)"`, 'i')) ||
                     html.match(new RegExp(`<meta name="${prop}" content="([^"]*)"`, 'i'))
       return match ? match[1] : null
     }
 
-    const title = jsonLdData.title || getMeta('og:title') || html.match(/<title>([^<]*)<\/title>/i)?.[1] || 'Geïmporteerd Product'
-    const image = jsonLdData.image || getMeta('og:image') || getMeta('twitter:image') || 'https://via.placeholder.com/800x800?text=No+Image'
-    const description = jsonLdData.description || getMeta('og:description') || getMeta('description') || `Geïmporteerd van: ${url}`
+    const title = jsonLdData.title || getMeta('og:title') || 'Geïmporteerd Product'
+    const image = jsonLdData.image || getMeta('og:image') || 'https://via.placeholder.com/800x800'
+    // Se não achou galeria no JSON-LD, usa a imagem principal como galeria
+    const gallery = jsonLdData.gallery && jsonLdData.gallery.length > 0 ? jsonLdData.gallery : [image];
     
-    // Preço: Tenta JSON-LD -> Regex no HTML
     let price = 0
     if (jsonLdData.price) {
       price = parseFloat(jsonLdData.price)
     } else {
-      const priceMatch = html.match(/[\$€£]\s*(\d+[.,]\d{2})/) || html.match(/(\d+[.,]\d{2})\s*[\$€£]/)
+      const priceMatch = html.match(/[\$€£]\s*(\d+[.,]\d{2})/)
       price = priceMatch ? parseFloat(priceMatch[1].replace(',', '.')) : 50
     }
 
     const basicData = {
       title: title.substring(0, 100),
-      description: description.substring(0, 500),
+      description: (jsonLdData.description || getMeta('og:description') || '').substring(0, 500),
       price: price || 50,
       category: 'Overig',
       image: image,
+      gallery: gallery,
       condition: 'NEW'
     }
 
-    // 3. Decisão: Usar IA ou Retornar Dados Extraídos
-    const openRouterKey = apiKey || Deno.env.get('OPENROUTER_API_KEY')
-
-    // Se não tiver chave OU se já extraímos dados de alta qualidade via JSON-LD, podemos pular a IA se o html estiver vazio (erro de fetch)
-    if (!openRouterKey || !html) {
-      console.log("No API Key or empty HTML. Returning scraped data.")
-      return new Response(JSON.stringify(basicData), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // 4. Modo IA (Refinamento)
-    // Se temos HTML, a IA pode limpar o título e categorizar melhor
-    console.log("Enhancing with AI...")
-    
-    const cleanText = html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-                          .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
-                          .replace(/<[^>]+>/g, " ")
-                          .replace(/\s+/g, " ")
-                          .substring(0, 4000)
-
-    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openRouterKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "model": "google/gemini-2.0-flash-lite-preview-02-05:free",
-        "messages": [
-          {
-            "role": "system",
-            "content": `You are a product data extractor. Output ONLY JSON.
-            
-            Extract product details from the text.
-            - title: Clean, commercial Dutch title.
-            - description: Attractive Dutch description (max 300 chars).
-            - price: Number only.
-            - category: One of ['Elektronica', 'Design', 'Fietsen', 'Antiek', 'Gadgets', 'Vintage Mode'].
-            - image: URL.
-            
-            Prioritize this structured data if available:
-            ${JSON.stringify(basicData)}
-            
-            Page Text Context:
-            ${cleanText}
-            `
-          }
-        ]
-      })
-    });
-
-    if (!aiResponse.ok) {
-      return new Response(JSON.stringify(basicData), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const aiData = await aiResponse.json()
-    let content = aiData.choices?.[0]?.message?.content
-
-    if (!content) {
-       return new Response(JSON.stringify(basicData), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim()
-    const productData = JSON.parse(content)
-
-    // Fallback de imagem
-    if (!productData.image || productData.image.includes('placeholder') || productData.image.length < 10) {
-        productData.image = basicData.image;
-    }
-
-    return new Response(JSON.stringify(productData), {
+    return new Response(JSON.stringify(basicData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error("Clone Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 400, // Bad Request para erros de cliente
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
