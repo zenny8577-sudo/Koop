@@ -14,7 +14,7 @@ const MOCK_SELLER_PRODUCTS: Product[] = [
     id: 'mock-1',
     sellerId: 'user_123',
     title: 'iPhone 14 Pro (Demo)',
-    description: 'Produto de demonstração carregado automaticamente.',
+    description: 'Demoproduct automatisch geladen.',
     price: 850,
     condition: ProductCondition.LIKE_NEW,
     status: ProductStatus.ACTIVE,
@@ -33,7 +33,7 @@ const MOCK_SELLER_PRODUCTS: Product[] = [
     id: 'mock-2',
     sellerId: 'user_123',
     title: 'Herman Miller Chair (Demo)',
-    description: 'Cadeira de design para escritório.',
+    description: 'Design bureaustoel.',
     price: 1200,
     condition: ProductCondition.GOOD,
     status: ProductStatus.PENDING_APPROVAL,
@@ -98,7 +98,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
     } catch (err) {
       console.error('Products load error, falling back to mocks:', err);
       // Fallback gracioso: mostra erro mas carrega dados mockados
-      setError('Conexão instável. Mostrando dados de demonstração.');
+      setError('Verbinding instabiel. Demogegevens worden getoond.');
       setProducts(MOCK_SELLER_PRODUCTS);
     } finally {
       setIsLoading(false);
@@ -140,7 +140,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         description: '',
         image: 'https://images.unsplash.com/photo-1517336714467-d13a863b17e9?auto=format&fit=crop&q=80&w=800'
       });
-      alert('Produto enviado para aprovação!');
+      alert('Product ingediend ter goedkeuring!');
     } catch (err) {
       console.error("Add product error:", err);
       // Simula sucesso em caso de erro no banco (para demo)
@@ -165,7 +165,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
       };
       setProducts([mockNew, ...products]);
       setShowAddModal(false);
-      alert('Produto criado (Modo Demo - Falha de conexão)');
+      alert('Product aangemaakt (Demo Modus - Verbindingsfout)');
     } finally {
       setIsLoading(false);
     }
@@ -187,7 +187,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
              <p className="text-xs font-bold text-orange-700">{error}</p>
            </div>
-           <button onClick={loadUserProducts} className="text-[10px] font-black uppercase tracking-widest text-orange-600 hover:underline">Tentar Novamente</button>
+           <button onClick={loadUserProducts} className="text-[10px] font-black uppercase tracking-widest text-orange-600 hover:underline">Opnieuw Proberen</button>
         </div>
       )}
 
@@ -230,7 +230,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         <div className="space-y-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { label: 'Netto Verdiensten', val: `€${stats.netEarnings.toLocaleString()}`, color: 'text-slate-900' },
+              { label: 'Netto Inkomsten', val: `€${stats.netEarnings.toLocaleString()}`, color: 'text-slate-900' },
               { label: 'Bruto Omzet', val: `€${stats.totalSales.toLocaleString()}`, color: 'text-slate-400' },
               { label: 'Live Listings', val: stats.activeCount, color: 'text-emerald-500' },
               { label: 'In Review', val: stats.pendingCount, color: stats.pendingCount > 0 ? 'text-[#FF4F00]' : 'text-slate-200' },

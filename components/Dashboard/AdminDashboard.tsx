@@ -52,7 +52,7 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user) throw new Error("Gebruiker niet ingelogd");
 
       const productPayload = {
         ...formData,
@@ -68,30 +68,21 @@ const AdminDashboard: React.FC = () => {
 
       await loadData();
       setShowProductForm(false);
-      alert('Produto criado com sucesso!');
+      alert('Product succesvol aangemaakt!');
     } catch (err) {
-      alert('Erro ao criar produto: ' + (err as Error).message);
+      alert('Fout bij aanmaken product: ' + (err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (productId: string, status: ProductStatus) => {
-    try {
-      await supabase.from('products').update({ status }).eq('id', productId);
-      setProducts(products.map(p => p.id === productId ? { ...p, status } : p));
-    } catch (err) {
-      alert('Falha ao atualizar status');
-    }
-  };
-
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm('Tem certeza que deseja deletar este produto?')) return;
+    if (!confirm('Weet u zeker dat u dit product wilt verwijderen?')) return;
     try {
       await supabase.from('products').delete().eq('id', productId);
       setProducts(products.filter(p => p.id !== productId));
     } catch (err) {
-      alert('Erro ao deletar');
+      alert('Fout bij verwijderen');
     }
   };
 
@@ -110,16 +101,14 @@ const AdminDashboard: React.FC = () => {
       const isAli = importUrl.includes('aliexpress');
       const isTemu = importUrl.includes('temu');
       const isAmazon = importUrl.includes('amazon');
-      const isBol = importUrl.includes('bol.com');
 
-      // Simulação de Scraping (Já que navegadores bloqueiam CORS de sites reais)
-      // Em produção real, você usaria uma Edge Function aqui.
+      // Simulação de Scraping
       const basePrice = Math.floor(Math.random() * 50) + 20; // Preço "raspado"
       const finalPrice = basePrice * (1 + (priceMarkup / 100)); // Aplica Markup
 
       const mockProduct = {
-        title: isAli ? "AliExpress Import: Gadget Pro" : isTemu ? "Temu Deal: Smart Home Item" : isAmazon ? "Amazon Choice: Tech Item" : "Imported Item",
-        description: `Importado automaticamente de: ${importUrl}.\nPreço Original Estimado: €${basePrice}.\nMarkup Aplicado: ${priceMarkup}%`,
+        title: isAli ? "AliExpress Import: Gadget Pro" : isTemu ? "Temu Deal: Smart Home Item" : isAmazon ? "Amazon Choice: Tech Item" : "Geïmporteerd Item",
+        description: `Automatisch geïmporteerd van: ${importUrl}.\nGeschatte Originele Prijs: €${basePrice}.\nToegepaste Marge: ${priceMarkup}%`,
         price: parseFloat(finalPrice.toFixed(2)),
         category: 'Gadgets',
         condition: ProductCondition.NEW,
@@ -138,9 +127,9 @@ const AdminDashboard: React.FC = () => {
 
       await loadData();
       setImportUrl('');
-      alert(`Produto importado! Preço ajustado de €${basePrice} para €${mockProduct.price}`);
+      alert(`Product geïmporteerd! Prijs aangepast van €${basePrice} naar €${mockProduct.price}`);
     } catch (err) {
-      alert('Erro na importação: ' + (err as Error).message);
+      alert('Fout bij importeren: ' + (err as Error).message);
     } finally {
       setIsImporting(false);
     }
@@ -154,7 +143,7 @@ const AdminDashboard: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Parser simples de CSV (Formato: Titulo,Preco,Categoria,ImagemURL)
+      // Parser simples de CSV
       const lines = csvContent.split('\n');
       const productsToInsert = [];
 
@@ -164,12 +153,12 @@ const AdminDashboard: React.FC = () => {
             productsToInsert.push({
                 title: title.trim(),
                 price: parseFloat(price.trim()),
-                category: category?.trim() || 'Outros',
+                category: category?.trim() || 'Overig',
                 image: image?.trim() || 'https://via.placeholder.com/300',
                 seller_id: user.id,
                 condition: ProductCondition.NEW,
                 status: ProductStatus.ACTIVE,
-                description: 'Importado via CSV em Massa',
+                description: 'Geïmporteerd via Bulk CSV',
                 sku: `BULK-${Math.floor(Math.random() * 10000)}`,
                 created_at: new Date().toISOString()
             });
@@ -181,12 +170,12 @@ const AdminDashboard: React.FC = () => {
           if (error) throw error;
           await loadData();
           setCsvContent('');
-          alert(`${productsToInsert.length} produtos importados com sucesso!`);
+          alert(`${productsToInsert.length} producten succesvol geïmporteerd!`);
       } else {
-          alert("Nenhum produto válido encontrado no CSV. Use o formato: Titulo,Preco,Categoria,Imagem");
+          alert("Geen geldige producten gevonden in CSV. Gebruik formaat: Titel,Prijs,Categorie,AfbeeldingURL");
       }
     } catch (err) {
-        alert('Erro no CSV: ' + (err as Error).message);
+        alert('Fout in CSV: ' + (err as Error).message);
     } finally {
         setIsImporting(false);
     }
@@ -199,17 +188,17 @@ const AdminDashboard: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-purple-600" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Admin Control</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Beheerderscontrole</span>
           </div>
           <h1 className="text-6xl font-black text-slate-950 tracking-tighter uppercase leading-[0.85]">
-            Painel <br /><span className="text-purple-600">Mestre.</span>
+            Beheerders <br /><span className="text-purple-600">Paneel.</span>
           </h1>
           <nav className="flex gap-4 pt-4 overflow-x-auto">
             {[
-              { id: 'overview', label: 'Dashboard' },
-              { id: 'products', label: 'Produtos' },
-              { id: 'import', label: 'Dropshipping & Mass' },
-              { id: 'users', label: 'Usuários' }
+              { id: 'overview', label: 'Overzicht' },
+              { id: 'products', label: 'Producten' },
+              { id: 'import', label: 'Dropshipping & Bulk' },
+              { id: 'users', label: 'Gebruikers' }
             ].map(tab => (
               <button 
                 key={tab.id} 
@@ -230,19 +219,19 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
            <div className="bg-slate-900 text-white p-10 rounded-[40px]">
               <p className="text-4xl font-black">{stats.totalSales}</p>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mt-2">Vendas Totais</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mt-2">Totale Verkopen</p>
            </div>
            <div className="bg-white border border-slate-100 p-10 rounded-[40px]">
               <p className="text-4xl font-black text-emerald-500">{stats.activeListings}</p>
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">Listings Ativos</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">Actieve Advertenties</p>
            </div>
            <div className="bg-white border border-slate-100 p-10 rounded-[40px]">
               <p className="text-4xl font-black text-orange-500">{stats.pendingApprovals}</p>
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">Pendentes</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">In Behandeling</p>
            </div>
            <div className="bg-white border border-slate-100 p-10 rounded-[40px]">
               <p className="text-4xl font-black text-purple-600">{stats.newUsers}</p>
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">Usuários</p>
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 mt-2">Gebruikers</p>
            </div>
         </div>
       )}
@@ -256,11 +245,11 @@ const AdminDashboard: React.FC = () => {
                  <span className="w-8 h-8 flex items-center justify-center bg-purple-50 text-purple-600 rounded-full">⚡</span>
                  <h3 className="text-xl font-black uppercase tracking-tighter">Smart Clone (URL)</h3>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Cole o link (AliExpress, Temu, Amazon) para clonar e ajustar o preço automaticamente.</p>
+              <p className="text-xs text-slate-500 font-medium">Plak de link (AliExpress, Temu, Amazon) om te klonen en de prijs automatisch aan te passen.</p>
               
               <form onSubmit={handleSmartImport} className="space-y-4">
                  <div>
-                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3 mb-1 block">Link do Produto</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3 mb-1 block">Productlink</label>
                     <input 
                       required 
                       value={importUrl}
@@ -271,7 +260,7 @@ const AdminDashboard: React.FC = () => {
                  </div>
                  
                  <div>
-                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3 mb-1 block">Markup de Lucro (%)</label>
+                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 pl-3 mb-1 block">Winstmarge (%)</label>
                     <div className="flex items-center gap-4">
                        <input 
                          type="range" min="0" max="200" step="5"
@@ -284,7 +273,7 @@ const AdminDashboard: React.FC = () => {
                  </div>
 
                  <button disabled={isImporting} className="w-full py-4 bg-purple-600 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all disabled:opacity-50">
-                    {isImporting ? 'Clonando...' : 'Importar & Ajustar Preço'}
+                    {isImporting ? 'Klonen...' : 'Importeren & Prijs Aanpassen'}
                  </button>
               </form>
            </div>
@@ -293,19 +282,19 @@ const AdminDashboard: React.FC = () => {
            <div className="bg-slate-900 p-10 rounded-[40px] shadow-xl text-white space-y-6">
               <div className="flex items-center gap-3 mb-2">
                  <span className="w-8 h-8 flex items-center justify-center bg-white/10 text-white rounded-full">📊</span>
-                 <h3 className="text-xl font-black uppercase tracking-tighter">Importação em Massa (CSV)</h3>
+                 <h3 className="text-xl font-black uppercase tracking-tighter">Massa Import (CSV)</h3>
               </div>
-              <p className="text-xs text-white/60 font-medium">Cole seus dados CSV abaixo. Formato: Titulo,Preco,Categoria,ImagemURL</p>
+              <p className="text-xs text-white/60 font-medium">Plak hier uw CSV-gegevens. Formaat: Titel,Prijs,Categorie,AfbeeldingURL</p>
               
               <textarea 
                  value={csvContent}
                  onChange={e => setCsvContent(e.target.value)}
-                 placeholder="iPhone 15, 999, Elektronica, http://img...\nCadeira Eames, 450, Design, http://img..."
+                 placeholder="iPhone 15, 999, Elektronica, http://img...\nEames Stoel, 450, Design, http://img..."
                  className="w-full h-40 bg-white/10 border-none rounded-2xl p-4 text-xs font-mono text-white placeholder:text-white/20 focus:ring-2 focus:ring-emerald-500/50 outline-none"
               />
               
               <button onClick={handleCSVImport} disabled={isImporting} className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-emerald-400 transition-all disabled:opacity-50">
-                  {isImporting ? 'Processando...' : 'Processar Lista CSV'}
+                  {isImporting ? 'Verwerken...' : 'CSV Lijst Verwerken'}
               </button>
            </div>
         </div>
@@ -317,12 +306,12 @@ const AdminDashboard: React.FC = () => {
            {!showProductForm ? (
              <div className="bg-white rounded-[40px] border border-slate-100 overflow-hidden shadow-sm">
                 <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                   <h2 className="font-black uppercase tracking-tighter text-slate-900">Catálogo Global</h2>
+                   <h2 className="font-black uppercase tracking-tighter text-slate-900">Wereldwijde Catalogus</h2>
                    <button 
                      onClick={() => setShowProductForm(true)} 
                      className="px-6 py-3 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20"
                    >
-                     + Novo Produto
+                     + Nieuw Product
                    </button>
                 </div>
                 <div className="overflow-x-auto">
@@ -330,9 +319,9 @@ const AdminDashboard: React.FC = () => {
                       <thead className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-400">
                          <tr>
                             <th className="px-8 py-4">Item</th>
-                            <th className="px-8 py-4 text-center">Preço</th>
+                            <th className="px-8 py-4 text-center">Prijs</th>
                             <th className="px-8 py-4 text-center">Status</th>
-                            <th className="px-8 py-4 text-right">Ações</th>
+                            <th className="px-8 py-4 text-right">Acties</th>
                          </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
@@ -351,7 +340,7 @@ const AdminDashboard: React.FC = () => {
                                   </span>
                                </td>
                                <td className="px-8 py-4 text-right space-x-2">
-                                  <button onClick={() => handleDeleteProduct(p.id)} className="text-rose-500 hover:text-rose-700 text-[10px] font-bold uppercase">Deletar</button>
+                                  <button onClick={() => handleDeleteProduct(p.id)} className="text-rose-500 hover:text-rose-700 text-[10px] font-bold uppercase">Verwijderen</button>
                                </td>
                             </tr>
                          ))}
@@ -372,7 +361,7 @@ const AdminDashboard: React.FC = () => {
       {/* 4. USERS */}
       {activeTab === 'users' && (
          <div className="bg-white rounded-[40px] border border-slate-100 p-8">
-            <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Gestão de Usuários Simplificada</p>
+            <p className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Eenvoudig Gebruikersbeheer</p>
             {/* Lista simplificada de users */}
             <div className="mt-8 space-y-4">
                {users.map(u => (
