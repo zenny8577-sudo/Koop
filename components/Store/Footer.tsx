@@ -52,12 +52,12 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           <div className="lg:col-span-4 space-y-8">
             <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Betaal Veilig</h4>
-            <div className="flex flex-wrap items-center gap-8 grayscale opacity-30 hover:opacity-100 transition-opacity duration-300">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-5" alt="iDEAL" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/Klarna_Logo.svg" className="h-5" alt="Klarna" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" alt="Visa" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-5" alt="Mastercard" />
-              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" className="h-5" alt="PayPal" />
+            <div className="flex flex-wrap items-center gap-6 grayscale opacity-50 hover:opacity-100 transition-opacity duration-300">
+              <img src="/assets/ideal.png" className="h-8 w-auto object-contain" alt="iDEAL" />
+              <img src="/assets/klarna.png" className="h-6 w-auto object-contain" alt="Klarna" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4 w-auto object-contain" alt="Visa" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-6 w-auto object-contain" alt="Mastercard" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" className="h-5 w-auto object-contain" alt="PayPal" />
             </div>
             <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed">
