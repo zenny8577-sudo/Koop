@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ProductCard from '../Products/ProductCard';
 import { Product } from '../../types';
+import ContactModal from '../Shop/ContactModal';
 
 interface ShopViewProps {
   products: Product[];
@@ -35,6 +36,7 @@ const ShopView: React.FC<ShopViewProps> = ({
   onRemoveFilter
 }) => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   // Filtro local para garantir que subcategorias sejam aplicadas corretamente
   const filteredProducts = products.filter(p => {
@@ -46,6 +48,13 @@ const ShopView: React.FC<ShopViewProps> = ({
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-12 lg:py-24 animate-fadeIn flex flex-col lg:flex-row gap-12 lg:gap-20">
       
+      {/* Contact Modal */}
+      <ContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+        user={user} 
+      />
+
       {/* Mobile Filter Toggle */}
       <div className="lg:hidden">
         <button 
@@ -134,7 +143,12 @@ const ShopView: React.FC<ShopViewProps> = ({
            <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4F00] blur-[80px] opacity-20" />
            <h4 className="text-xl font-black uppercase tracking-tighter relative z-10">Hulp Nodig?</h4>
            <p className="text-white/60 text-sm font-medium relative z-10 leading-relaxed">Onze curators staan klaar om al uw perguntas te beantwoorden.</p>
-           <button onClick={() => {}} className="w-full py-5 bg-white text-slate-950 font-black rounded-3xl uppercase tracking-widest text-[10px] relative z-10 hover:bg-[#FF4F00] hover:text-white transition-all">Stuur Bericht</button>
+           <button 
+             onClick={() => setIsContactModalOpen(true)} 
+             className="w-full py-5 bg-white text-slate-950 font-black rounded-3xl uppercase tracking-widest text-[10px] relative z-10 hover:bg-[#FF4F00] hover:text-white transition-all"
+           >
+             Stuur Bericht
+           </button>
         </div>
       </aside>
 

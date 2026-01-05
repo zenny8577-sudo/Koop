@@ -10,13 +10,14 @@ import AdminImport from '../Admin/AdminImport';
 import AdminUsers from '../Admin/AdminUsers';
 import AdminSellers from '../Admin/AdminSellers';
 import AdminSettings from '../Admin/AdminSettings';
+import AdminMessages from '../Admin/AdminMessages';
 
 interface AdminDashboardProps {
   onDataChange?: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'categories' | 'import' | 'users' | 'sellers' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'categories' | 'import' | 'users' | 'sellers' | 'messages' | 'settings'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -40,10 +41,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
       
       let allProducts = productsData || [];
       
-      // LOGICA DE DEDUPLICAÇÃO INTELIGENTE
-      // Se tivermos poucos produtos reais, misturamos com os mocks para o painel não ficar vazio.
-      // MAS, filtramos os mocks cujo TÍTULO já existe nos produtos reais.
-      // Assim, ao aprovar um mock, ele vira real, e o mock original some da lista.
       if (allProducts.length < 20) {
           const realTitles = new Set(allProducts.map(p => p.title.trim().toLowerCase()));
           const realIds = new Set(allProducts.map(p => p.id));
@@ -76,8 +73,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
   };
 
   const handleRefresh = () => {
-    loadData(); // Atualiza Admin
-    if (onDataChange) onDataChange(); // Atualiza App (Loja)
+    loadData();
+    if (onDataChange) onDataChange();
   };
 
   return (
@@ -96,9 +93,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
               { id: 'overview', label: 'Overzicht' },
               { id: 'products', label: 'Producten' },
               { id: 'categories', label: 'Categorieën' },
-              { id: 'import', label: 'Importeren' },
+              { id: 'messages', label: 'Berichten' },
               { id: 'users', label: 'Gebruikers' },
               { id: 'sellers', label: 'Verkopers' },
+              { id: 'import', label: 'Importeren' },
               { id: 'settings', label: 'Instellingen' }
             ].map(tab => (
               <button 
@@ -116,6 +114,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onDataChange }) => {
       {activeTab === 'overview' && <AdminOverview products={products} users={users} transactions={transactions} />}
       {activeTab === 'products' && <AdminProducts products={products} loading={loading} onRefresh={handleRefresh} />}
       {activeTab === 'categories' && <AdminCategories />}
+      {activeTab === 'messages' && <AdminMessages />}
       {activeTab === 'import' && <AdminImport apiKeys={apiKeys} onImportSuccess={handleRefresh} onRequestSettings={() => setActiveTab('settings')} />}
       {activeTab === 'users' && <AdminUsers users={users} />}
       {activeTab === 'sellers' && <AdminSellers users={users} onUpdate={loadData} />}
