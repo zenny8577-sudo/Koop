@@ -21,6 +21,7 @@ import ShopView from './components/App/ShopView';
 import SuccessView from './components/App/SuccessView';
 import { mockProducts } from './services/mockData';
 import { Toaster } from 'react-hot-toast';
+import { LanguageProvider } from './context/LanguageContext';
 
 type ViewState = 'home' | 'shop' | 'detail' | 'admin' | 'seller-dashboard' | 'buyer-dashboard' | 'sell' | 'sell-onboarding' | 'about' | 'faq' | 'contact' | 'privacy' | 'terms' | 'cookies' | 'checkout' | 'success';
 
@@ -224,7 +225,9 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <AppContent />
+  <LanguageProvider>
+    <AppContent />
+  </LanguageProvider>
 );
 
 export default App;
