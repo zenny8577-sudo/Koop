@@ -49,7 +49,7 @@ const HomeView: React.FC<HomeViewProps> = ({
         <div className="relative z-10 max-w-5xl space-y-6 lg:space-y-14">
           <div className="space-y-3 lg:space-y-4">
             <span className="inline-block px-3 py-1.5 lg:px-5 lg:py-2.5 bg-[#FF4F00]/10 text-[#FF4F00] text-[8px] lg:text-[11px] font-black uppercase tracking-[0.2em] lg:tracking-[0.4em] rounded-full border border-[#FF4F00]/20 backdrop-blur-md whitespace-nowrap">De Nederlandse Premium Standaard</span>
-            <h1 className="text-[42px] sm:text-6xl lg:text-[160px] font-black text-white leading-[0.9] lg:leading-[0.8] tracking-tighter uppercase break-words hyphens-auto">
+            <h1 className="text-4xl sm:text-5xl lg:text-[160px] font-black text-white leading-[0.9] lg:leading-[0.8] tracking-tighter uppercase break-words">
               HERGEBRUIKTE <br /> <span className="text-[#FF4F00]">MEESTERWERKEN.</span>
             </h1>
           </div>

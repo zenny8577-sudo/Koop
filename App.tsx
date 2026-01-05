@@ -20,6 +20,7 @@ import HomeView from './components/App/HomeView';
 import ShopView from './components/App/ShopView';
 import SuccessView from './components/App/SuccessView';
 import { mockProducts } from './services/mockData';
+import { Toaster } from 'react-hot-toast';
 
 type ViewState = 'home' | 'shop' | 'detail' | 'admin' | 'seller-dashboard' | 'buyer-dashboard' | 'sell' | 'sell-onboarding' | 'about' | 'faq' | 'contact' | 'privacy' | 'terms' | 'cookies' | 'checkout' | 'success';
 
@@ -147,6 +148,17 @@ const AppContent: React.FC = () => {
     
     return (
       <div className="min-h-screen bg-white text-slate-900">
+        <Toaster position="top-center" toastOptions={{
+          className: '',
+          style: {
+            border: '1px solid #F1F5F9',
+            padding: '16px',
+            color: '#0F172A',
+            borderRadius: '16px',
+            fontSize: '14px',
+            fontWeight: '600'
+          },
+        }} />
         <Navbar 
           onHome={() => setView('home')} 
           onShop={() => setView('shop')} 

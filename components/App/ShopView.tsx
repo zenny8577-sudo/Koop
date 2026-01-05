@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ProductCard from '../Products/ProductCard';
-import { Product } from '../../types';
+import { Product, ProductCondition } from '../../types';
 import ContactModal from '../Shop/ContactModal';
 
 interface ShopViewProps {
@@ -38,10 +38,10 @@ const ShopView: React.FC<ShopViewProps> = ({
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-  // Filtro local para garantir que subcategorias sejam aplicadas corretamente
+  // Filtro local para garantir que subcategorias e condição sejam aplicadas
   const filteredProducts = products.filter(p => {
-    // Se houver subcategoria selecionada, verifica se bate
     if (filters.subcategory && p.subcategory !== filters.subcategory) return false;
+    if (filters.condition !== 'All' && p.condition !== filters.condition) return false;
     return true;
   });
 
@@ -59,40 +59,40 @@ const ShopView: React.FC<ShopViewProps> = ({
       <div className="lg:hidden">
         <button 
           onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-          className="w-full flex justify-between items-center bg-slate-50 p-6 rounded-[32px]"
+          className="w-full flex justify-between items-center bg-slate-50 p-6 rounded-[32px] border border-slate-100"
         >
           <span className="font-black uppercase tracking-widest text-xs">Filters & Categorieën</span>
           <svg className={`w-5 h-5 transition-transform ${isMobileFiltersOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
         </button>
       </div>
 
-      <aside className={`w-full lg:w-96 shrink-0 space-y-16 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
+      <aside className={`w-full lg:w-80 xl:w-96 shrink-0 space-y-12 lg:block ${isMobileFiltersOpen ? 'block' : 'hidden'}`}>
         <div className="space-y-6">
-          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Refine Search</h3>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Zoeken</h3>
           <div className="relative group">
             <input
               type="text"
-              placeholder="PRODUCT, SKU OF TAGS..."
+              placeholder="Product, SKU of tags..."
               value={filters.search}
               onChange={e => onFilterChange({...filters, search: e.target.value})}
-              className="w-full bg-slate-50 dark:bg-neutral-900 border-2 border-slate-50 dark:border-transparent focus:border-[#FF4F00]/20 dark:focus:border-[#FF4F00]/50 rounded-[32px] px-10 py-7 text-sm font-bold outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-white/20 text-slate-900 dark:text-white shadow-sm dark:shadow-none"
+              className="w-full bg-slate-50 dark:bg-neutral-900 border-2 border-slate-50 dark:border-transparent focus:border-[#FF4F00]/20 dark:focus:border-[#FF4F00]/50 rounded-[32px] px-8 py-5 text-sm font-bold outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-white/20 text-slate-900 dark:text-white shadow-sm dark:shadow-none"
             />
-            <svg className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 dark:text-white/30 group-hover:text-[#FF4F00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <svg className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 dark:text-white/30 group-hover:text-[#FF4F00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </div>
         </div>
 
         {/* Categories & Subcategories */}
-        <div className="space-y-10">
+        <div className="space-y-8">
           <div className="flex justify-between items-center">
             <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Collecties</h3>
             {filters.category !== 'All' && (
-              <button onClick={() => onFilterChange({...filters, category: 'All', subcategory: ''})} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest border-b border-[#FF4F00]">Reset</button>
+              <button onClick={() => onFilterChange({...filters, category: 'All', subcategory: ''})} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest hover:underline">Reset</button>
             )}
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1">
             <button
               onClick={() => onFilterChange({...filters, category: 'All', subcategory: ''})}
-              className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group py-2 ${filters.category === 'All' ? 'text-[#FF4F00]' : 'text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-white'}`}
+              className={`text-left text-base font-black uppercase tracking-tight transition-all flex items-center justify-between group py-2 px-4 rounded-xl ${filters.category === 'All' ? 'bg-[#FF4F00]/5 text-[#FF4F00]' : 'text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50'}`}
             >
               All Products
             </button>
@@ -101,22 +101,21 @@ const ShopView: React.FC<ShopViewProps> = ({
               <div key={c} className="flex flex-col">
                 <button
                   onClick={() => onFilterChange({...filters, category: c, subcategory: ''})}
-                  className={`text-left text-lg font-black uppercase tracking-tighter transition-all flex items-center justify-between group py-2 ${filters.category === c ? 'text-[#FF4F00]' : 'text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-white'}`}
+                  className={`text-left text-base font-black uppercase tracking-tight transition-all flex items-center justify-between group py-2 px-4 rounded-xl ${filters.category === c ? 'bg-[#FF4F00]/5 text-[#FF4F00]' : 'text-slate-400 dark:text-neutral-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50'}`}
                 >
                   {c}
                   <div className={`w-2 h-2 rounded-full bg-[#FF4F00] transition-all duration-300 ${filters.category === c ? 'scale-100' : 'scale-0'}`} />
                 </button>
                 
                 {/* Subcategories */}
-                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${filters.category === c ? 'max-h-96 opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
-                  <div className="pl-4 flex flex-col gap-2 border-l-2 border-slate-100 dark:border-white/10 ml-2 mt-2">
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${filters.category === c ? 'max-h-96 opacity-100 mb-2' : 'max-h-0 opacity-0'}`}>
+                  <div className="flex flex-col gap-1 pl-4 mt-1">
                     {CATEGORY_MAP[c].map(sub => (
                       <button
                         key={sub}
                         onClick={() => onFilterChange({...filters, category: c, subcategory: sub === filters.subcategory ? '' : sub})}
-                        className={`text-left text-xs font-bold uppercase tracking-widest transition-all py-1 ${filters.subcategory === sub ? 'text-slate-900 dark:text-white pl-2' : 'text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300'}`}
+                        className={`text-left text-xs font-bold uppercase tracking-widest transition-all py-2 px-4 rounded-lg border-l-2 ${filters.subcategory === sub ? 'border-[#FF4F00] text-slate-900 dark:text-white bg-slate-50' : 'border-slate-100 text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-300 hover:border-slate-300'}`}
                       >
-                        {filters.subcategory === sub && <span className="text-[#FF4F00] mr-2">•</span>}
                         {sub}
                       </button>
                     ))}
@@ -127,25 +126,60 @@ const ShopView: React.FC<ShopViewProps> = ({
           </div>
         </div>
 
+        {/* Condition Filter */}
+        <div className="space-y-8">
+          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Staat / Conditie</h3>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="radio" 
+                name="condition" 
+                checked={filters.condition === 'All'}
+                onChange={() => onFilterChange({...filters, condition: 'All'})}
+                className="w-4 h-4 accent-[#FF4F00]"
+              />
+              <span className={`text-xs font-bold uppercase tracking-widest group-hover:text-slate-900 transition-colors ${filters.condition === 'All' ? 'text-slate-900' : 'text-slate-400'}`}>Alles</span>
+            </label>
+            {Object.values(ProductCondition).map(cond => (
+              <label key={cond} className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="radio" 
+                  name="condition" 
+                  checked={filters.condition === cond}
+                  onChange={() => onFilterChange({...filters, condition: cond})}
+                  className="w-4 h-4 accent-[#FF4F00]"
+                />
+                <span className={`text-xs font-bold uppercase tracking-widest group-hover:text-slate-900 transition-colors ${filters.condition === cond ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {cond.replace('_', ' ')}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Price Range */}
-        <div className="space-y-10">
-          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Prijs Range</h3>
-          <div className="px-2 space-y-8">
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+             <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Prijs</h3>
+             {filters.maxPrice < 10000 && (
+                <button onClick={() => onFilterChange({...filters, maxPrice: 10000})} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest hover:underline">Reset</button>
+             )}
+          </div>
+          <div className="px-2 space-y-6">
             <div className="flex justify-between items-end">
-              <div className="space-y-1"><p className="text-[9px] font-black text-slate-300 dark:text-neutral-600 uppercase tracking-widest">Min.</p><p className="text-sm font-black text-slate-900 dark:text-white">€ 0</p></div>
-              <div className="text-right space-y-1"><p className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest">Max.</p><p className="text-xl font-black text-[#FF4F00]">€ {filters.maxPrice.toLocaleString()}</p></div>
+              <div className="space-y-1"><p className="text-[9px] font-black text-slate-300 dark:text-neutral-600 uppercase tracking-widest">Tot</p><p className="text-xl font-black text-slate-900 dark:text-white">€ {filters.maxPrice.toLocaleString()}</p></div>
             </div>
             <input type="range" min="0" max="10000" step="100" value={filters.maxPrice} onChange={e => onFilterChange({...filters, maxPrice: parseInt(e.target.value)})} className="w-full h-1.5 bg-slate-100 dark:bg-white/10 rounded-full appearance-none cursor-pointer accent-[#FF4F00]" />
           </div>
         </div>
 
-        <div className="p-10 bg-slate-950 dark:bg-neutral-900 rounded-[50px] space-y-6 text-white overflow-hidden relative shadow-3xl">
+        <div className="p-10 bg-slate-950 dark:bg-neutral-900 rounded-[40px] space-y-6 text-white overflow-hidden relative shadow-2xl">
            <div className="absolute top-0 right-0 w-32 h-32 bg-[#FF4F00] blur-[80px] opacity-20" />
            <h4 className="text-xl font-black uppercase tracking-tighter relative z-10">Hulp Nodig?</h4>
-           <p className="text-white/60 text-sm font-medium relative z-10 leading-relaxed">Onze curators staan klaar om al uw perguntas te beantwoorden.</p>
+           <p className="text-white/60 text-sm font-medium relative z-10 leading-relaxed">Onze curators staan klaar om al uw vragen te beantwoorden.</p>
            <button 
              onClick={() => setIsContactModalOpen(true)} 
-             className="w-full py-5 bg-white text-slate-950 font-black rounded-3xl uppercase tracking-widest text-[10px] relative z-10 hover:bg-[#FF4F00] hover:text-white transition-all"
+             className="w-full py-5 bg-white text-slate-950 font-black rounded-2xl uppercase tracking-widest text-[10px] relative z-10 hover:bg-[#FF4F00] hover:text-white transition-all"
            >
              Stuur Bericht
            </button>
@@ -164,6 +198,12 @@ const ShopView: React.FC<ShopViewProps> = ({
                   <button onClick={() => onRemoveFilter('category')} className="hover:text-[#FF4F00]">×</button>
                 </div>
               )}
+              {filters.condition !== 'All' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/10 rounded-full text-[9px] font-black text-slate-500 dark:text-white uppercase tracking-widest border border-slate-100 dark:border-white/5 animate-fadeIn">
+                  {filters.condition.replace('_', ' ')}
+                  <button onClick={() => onFilterChange({...filters, condition: 'All'})} className="hover:text-[#FF4F00]">×</button>
+                </div>
+              )}
               {filters.subcategory && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-full text-[9px] font-black text-purple-600 dark:text-purple-300 uppercase tracking-widest border border-purple-100 dark:border-purple-500/20 animate-fadeIn">
                   {filters.subcategory}
@@ -176,7 +216,7 @@ const ShopView: React.FC<ShopViewProps> = ({
                   <button onClick={() => onRemoveFilter('search')} className="hover:text-[#FF4F00]">×</button>
                 </div>
               )}
-              {(filters.category !== 'All' || filters.search || filters.subcategory) && (
+              {(filters.category !== 'All' || filters.search || filters.subcategory || filters.condition !== 'All') && (
                 <button onClick={onResetFilters} className="text-[9px] font-black text-[#FF4F00] uppercase tracking-widest hover:underline ml-2">Wis alles</button>
               )}
             </div>

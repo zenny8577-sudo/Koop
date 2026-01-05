@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../../types';
 import Logo from '../Branding/Logo';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NavbarProps {
   onHome: () => void;
@@ -22,6 +23,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { currentLanguage, switchLanguage } = useLanguage();
 
   const categories = [
     { name: 'Elektronica', icon: '💻' },
@@ -110,6 +112,22 @@ const Navbar: React.FC<NavbarProps> = ({
 
           {/* Actions */}
           <div className="flex items-center gap-4 lg:gap-6">
+            {/* Language Switcher */}
+            <div className="hidden lg:flex items-center bg-slate-50 rounded-full p-1 border border-slate-100">
+              <button 
+                onClick={() => switchLanguage('nl')}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${currentLanguage === 'nl' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                NL
+              </button>
+              <button 
+                onClick={() => switchLanguage('en')}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${currentLanguage === 'en' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                EN
+              </button>
+            </div>
+
             <button 
               onClick={onWishlist}
               className="hidden sm:block p-2 text-slate-900 hover:text-[#FF4F00] transition-colors"
@@ -195,7 +213,25 @@ const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="border-t border-slate-100 pt-8 space-y-6">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categorieën</p>
+              <div className="flex justify-between items-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Taal</p>
+                <div className="flex bg-slate-50 rounded-full p-1">
+                  <button 
+                    onClick={() => switchLanguage('nl')}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black ${currentLanguage === 'nl' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                  >
+                    NL
+                  </button>
+                  <button 
+                    onClick={() => switchLanguage('en')}
+                    className={`px-4 py-2 rounded-full text-[10px] font-black ${currentLanguage === 'en' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                  >
+                    EN
+                  </button>
+                </div>
+              </div>
+              
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-8">Categorieën</p>
               <div className="grid grid-cols-2 gap-4">
                 {categories.map(cat => (
                   <button 
