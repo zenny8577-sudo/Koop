@@ -145,12 +145,12 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
                 In Winkelwagen
               </button>
               
-              <div className="flex justify-center flex-wrap gap-6 opacity-40 grayscale relative z-10">
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/0/07/PostNL_logo_2013.svg" className="h-3 lg:h-4 object-contain" alt="PostNL" />
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/2/25/DHL_Logo.svg" className="h-3 lg:h-4 object-contain" alt="DHL" />
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/9/9d/FedEx_Express.svg" className="h-3 lg:h-4 object-contain" alt="FedEx" />
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/United_Parcel_Service_logo_2014.svg" className="h-4 lg:h-5 object-contain" alt="UPS" />
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/ab/DPD_logo_%282015%29.svg" className="h-3 lg:h-4 object-contain" alt="DPD" />
+              <div className="flex justify-center flex-wrap gap-6 opacity-60 grayscale relative z-10">
+                 <img src="/assets/postnl.png" className="h-6 w-auto object-contain" alt="PostNL" />
+                 <img src="/assets/dhl.png" className="h-6 w-auto object-contain" alt="DHL" />
+                 <img src="/assets/fedex.png" className="h-5 w-auto object-contain" alt="FedEx" />
+                 <img src="/assets/ups.png" className="h-6 w-auto object-contain" alt="UPS" />
+                 <img src="/assets/dpd.png" className="h-6 w-auto object-contain" alt="DPD" />
               </div>
             </div>
           </div>

@@ -21,6 +21,12 @@ const shippingLabels: Record<string, string> = {
   fedex: 'FedEx Priority'
 };
 
+const shippingLogos: Record<string, string> = {
+  postnl: '/assets/postnl.png',
+  dhl: '/assets/dhl.png',
+  fedex: '/assets/fedex.png'
+};
+
 // Component moved outside to prevent re-mounting on every render
 const InputField = ({ label, value, onChange, placeholder, type = "text", half = false }: any) => (
   <div className={`space-y-3 ${half ? 'md:col-span-1' : 'md:col-span-2'}`}>
@@ -163,10 +169,16 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                         onClick={() => setShippingMethod(method as any)}
                         className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${shippingMethod === method ? 'border-[#FF4F00] bg-orange-50/10' : 'border-slate-50 hover:border-slate-200'}`}
                       >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${shippingMethod === method ? 'border-[#FF4F00]' : 'border-slate-200'}`}>
+                        <div className="flex items-center gap-6">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${shippingMethod === method ? 'border-[#FF4F00]' : 'border-slate-200'}`}>
                             {shippingMethod === method && <div className="w-2.5 h-2.5 rounded-full bg-[#FF4F00]" />}
                           </div>
+                          
+                          {/* Carrier Logo */}
+                          <div className="w-16 h-8 flex items-center justify-center bg-white rounded-lg border border-slate-100 p-1">
+                            <img src={shippingLogos[method]} alt={method} className="max-w-full max-h-full object-contain" />
+                          </div>
+
                           <div>
                             <p className="font-bold text-slate-900 text-sm">{shippingLabels[method]}</p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
@@ -261,7 +273,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onBack }
                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" className="h-4" />
                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-4" />
                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" className="h-4" />
-                 <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/IDEAL_Logo.svg" className="h-4" />
+                 <img src="/assets/ideal.png" className="h-4 w-auto object-contain" alt="iDEAL" />
               </div>
             </div>
           </div>
