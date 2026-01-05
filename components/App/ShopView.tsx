@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ProductCard from '../Products/ProductCard';
 import { Product } from '../../types';
 
@@ -34,6 +34,8 @@ const ShopView: React.FC<ShopViewProps> = ({
   onResetFilters,
   onRemoveFilter
 }) => {
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
   // Filtro local para garantir que subcategorias sejam aplicadas corretamente
   const filteredProducts = products.filter(p => {
     // Se houver subcategoria selecionada, verifica se bate
@@ -41,13 +43,21 @@ const ShopView: React.FC<ShopViewProps> = ({
     return true;
   });
 
-  React.useEffect(() => {
-    console.log('ShopView mounted with filters:', filters);
-  }, [filters]);
-
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-24 animate-fadeIn flex flex-col lg:flex-row gap-20">
-      <aside className="w-full lg:w-96 shrink-0 space-y-16">
+    <div className="max-w-[1600px] mx-auto px-6 py-12 lg:py-24 animate-fadeIn flex flex-col lg:flex-row gap-12 lg:gap-20">
+      
+      {/* Mobile Filter Toggle */}
+      <div className="lg:hidden">
+        <button 
+          onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+          className="w-full flex justify-between items-center bg-slate-50 p-6 rounded-[32px]"
+        >
+          <span className="font-black uppercase tracking-widest text-xs">Filters & Categorieën</span>
+          <svg className={`w-5 h-5 transition-transform ${isMobileFiltersOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+      </div>
+
+      <aside className={`w-full lg:w-96 shrink-0 space-y-16 ${isMobileFiltersOpen ? 'block' : 'hidden lg:block'}`}>
         <div className="space-y-6">
           <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-neutral-500">Refine Search</h3>
           <div className="relative group">
@@ -132,7 +142,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         {/* Shop Header & Sort */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-slate-100 dark:border-white/10">
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400 dark:text-neutral-600">({filteredProducts.length})</span></h2>
+            <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Resultaten <span className="text-slate-400 dark:text-neutral-600">({filteredProducts.length})</span></h2>
             <div className="flex flex-wrap gap-2">
               {filters.category !== 'All' && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/10 rounded-full text-[9px] font-black text-slate-500 dark:text-white uppercase tracking-widest border border-slate-100 dark:border-white/5 animate-fadeIn">
@@ -173,7 +183,7 @@ const ShopView: React.FC<ShopViewProps> = ({
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-12 gap-y-24">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 lg:gap-x-12 gap-y-12 lg:gap-y-24">
           {filteredProducts.map(p => (
             <ProductCard
               key={p.id}

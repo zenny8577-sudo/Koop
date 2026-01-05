@@ -35,10 +35,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
   const delivery = product.estimatedDelivery || product.estimated_delivery || '2-4 werkdagen';
 
   return (
-    <div className="animate-fadeIn px-6 pb-40 pt-10 max-w-[1440px] mx-auto">
+    <div className="animate-fadeIn px-6 pb-20 lg:pb-40 pt-6 lg:pt-10 max-w-[1440px] mx-auto">
       <button 
         onClick={onBack} 
-        className="mb-12 flex items-center gap-3 group"
+        className="mb-8 lg:mb-12 flex items-center gap-3 group"
       >
         <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -46,20 +46,20 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Terug naar Collectie</span>
       </button>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
         {/* Gallery & Carousel */}
-        <div className="lg:col-span-7 space-y-8">
-          <div className="aspect-square rounded-[60px] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl relative group">
+        <div className="lg:col-span-7 space-y-6 lg:space-y-8">
+          <div className="aspect-square rounded-[40px] lg:rounded-[60px] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl relative group">
             <img src={activeImage} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" alt={product.title} />
             
             {/* Dots Navigation */}
             {allImages.length > 1 && (
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full">
+              <div className="absolute bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-20 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full">
                 {allImages.map((img, i) => (
                   <button 
                     key={i} 
                     onClick={() => setActiveImage(img)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${activeImage === img ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/80'}`}
+                    className={`w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full transition-all duration-300 ${activeImage === img ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/80'}`}
                   />
                 ))}
               </div>
@@ -68,7 +68,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
           
           {/* Thumbnails Strip */}
           {allImages.length > 1 && (
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-5 gap-2 lg:gap-4">
               {allImages.map((img, i) => (
                 <button 
                   key={i} 
@@ -81,16 +81,16 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
             </div>
           )}
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 lg:pt-8">
             {[
               { label: 'Conditie', val: product.condition.replace('_', ' ') },
               { label: 'Categorie', val: product.category },
               { label: 'Herkomst', val: `${getFlagEmoji(origin)} ${origin.toUpperCase()}` },
               { label: 'Levertijd', val: delivery }
             ].map((item, idx) => (
-              <div key={idx} className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm text-center">
+              <div key={idx} className="p-4 lg:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm text-center">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{item.val}</p>
+                <p className="text-xs lg:text-sm font-black text-slate-900 uppercase tracking-tight">{item.val}</p>
               </div>
             ))}
           </div>
@@ -113,23 +113,23 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
                 )}
               </div>
               
-              <h1 className="text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[0.9] uppercase">{product.title}</h1>
+              <h1 className="text-4xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[0.9] uppercase">{product.title}</h1>
               
               <div className="flex items-baseline gap-4 pt-4 border-b border-slate-100 pb-8">
-                <p className="text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter">€ {product.price.toLocaleString()}</p>
+                <p className="text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter">€ {product.price.toLocaleString()}</p>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BTW Inclusief</span>
               </div>
               
               <div className="prose prose-slate">
-                 <p className="text-slate-500 font-medium leading-relaxed text-lg">{product.description}</p>
+                 <p className="text-slate-500 font-medium leading-relaxed text-base lg:text-lg">{product.description}</p>
               </div>
             </div>
             
-            <div className="p-10 bg-slate-950 rounded-[50px] text-white space-y-8 shadow-2xl relative overflow-hidden">
+            <div className="p-8 lg:p-10 bg-slate-950 rounded-[40px] lg:rounded-[50px] text-white space-y-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF4F00] blur-[100px] opacity-20 pointer-events-none" />
               
               <div className="flex items-center gap-6 relative z-10">
-                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-white/10 flex items-center justify-center">
                   <Logo size="sm" variant="orange" className="scale-75" />
                 </div>
                 <div>
@@ -140,17 +140,17 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({ product, user, on
               
               <button 
                 onClick={() => onAddToCart?.(product)} 
-                className="w-full py-7 bg-[#FF4F00] text-white font-black rounded-[24px] uppercase tracking-widest text-[11px] shadow-lg hover:bg-white hover:text-slate-900 transition-all transform hover:-translate-y-1 relative z-10"
+                className="w-full py-6 lg:py-7 bg-[#FF4F00] text-white font-black rounded-[24px] uppercase tracking-widest text-[11px] shadow-lg hover:bg-white hover:text-slate-900 transition-all transform hover:-translate-y-1 relative z-10"
               >
                 In Winkelwagen
               </button>
               
-              <div className="flex justify-center flex-wrap gap-6 opacity-60 grayscale relative z-10">
-                 <img src="/assets/postnl.png" className="h-6 w-auto object-contain" alt="PostNL" />
-                 <img src="/assets/dhl.png" className="h-6 w-auto object-contain" alt="DHL" />
-                 <img src="/assets/fedex.png" className="h-5 w-auto object-contain" alt="FedEx" />
-                 <img src="/assets/ups.png" className="h-6 w-auto object-contain" alt="UPS" />
-                 <img src="/assets/dpd.png" className="h-6 w-auto object-contain" alt="DPD" />
+              <div className="flex justify-center flex-wrap gap-4 lg:gap-6 opacity-40 grayscale relative z-10">
+                 <img src="/assets/postnl.png" className="h-3 lg:h-4 object-contain" alt="PostNL" />
+                 <img src="/assets/dhl.png" className="h-3 lg:h-4 object-contain" alt="DHL" />
+                 <img src="/assets/fedex.png" className="h-3 lg:h-4 object-contain" alt="FedEx" />
+                 <img src="/assets/ups.png" className="h-4 lg:h-5 object-contain" alt="UPS" />
+                 <img src="/assets/dpd.png" className="h-3 lg:h-4 object-contain" alt="DPD" />
               </div>
             </div>
           </div>
