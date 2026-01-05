@@ -23,15 +23,16 @@ const Navbar: React.FC<NavbarProps> = ({
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { currentLanguage, switchLanguage } = useLanguage();
+  const { currentLanguage, switchLanguage, t } = useLanguage();
 
+  // Categorias estáticas com tradução
   const categories = [
-    { name: 'Elektronica', icon: '💻' },
-    { name: 'Design', icon: '🛋️' },
-    { name: 'Fietsen', icon: '🚲' },
-    { name: 'Vintage Mode', icon: '🧥' },
-    { name: 'Kunst & Antiek', icon: '🎨' },
-    { name: 'Gadgets', icon: '🕹️' },
+    { name: t('cat_electronics'), icon: '💻' },
+    { name: t('cat_design'), icon: '🛋️' },
+    { name: t('cat_bikes'), icon: '🚲' },
+    { name: t('cat_fashion'), icon: '🧥' },
+    { name: t('cat_antique'), icon: '🎨' },
+    { name: t('cat_gadgets'), icon: '🕹️' },
   ];
 
   const handleMobileNav = (action: () => void) => {
@@ -62,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({
               onClick={onHome} 
               className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors"
             >
-              Home
+              {t('nav_home')}
             </button>
             
             <div 
@@ -74,7 +75,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 onClick={onShop}
                 className="text-[11px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2 group py-8"
               >
-                Collectie
+                {t('nav_collection')}
                 <svg 
                   className={`w-3 h-3 transition-transform duration-300 ${isMegaMenuOpen ? 'rotate-180' : ''}`} 
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -101,7 +102,7 @@ const Navbar: React.FC<NavbarProps> = ({
                       </div>
                       <div>
                         <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">{cat.name}</h4>
-                        <p className="text-[9px] text-[#FF4F00] font-black uppercase tracking-[0.2em] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Ontdek Nu</p>
+                        <p className="text-[9px] text-[#FF4F00] font-black uppercase tracking-[0.2em] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">{t('nav_discover')}</p>
                       </div>
                     </button>
                   ))}
@@ -162,7 +163,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   onClick={onDashboard}
                   className="flex items-center gap-3 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl shadow-slate-200"
                 >
-                  Dashboard
+                  {t('nav_dashboard')}
                 </button>
                 
                 <div 
@@ -172,16 +173,16 @@ const Navbar: React.FC<NavbarProps> = ({
                 >
                   <button onClick={onDashboard} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">Overzicht</button>
                   {user.role === UserRole.ADMIN && (
-                    <button onClick={onAdmin} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">Admin Panel</button>
+                    <button onClick={onAdmin} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-[#FF4F00] hover:bg-slate-50 transition-colors">{t('nav_admin')}</button>
                   )}
                   <div className="my-2 border-t border-slate-100" />
-                  <button onClick={onLogout} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">Uitloggen</button>
+                  <button onClick={onLogout} className="w-full text-left px-6 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-colors">{t('nav_logout')}</button>
                 </div>
               </div>
             ) : (
               <div className="hidden lg:flex items-center gap-4">
-                <button onClick={onOpenLogin} className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors">Inloggen</button>
-                <button onClick={onSell} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl">Verkopen</button>
+                <button onClick={onOpenLogin} className="text-[11px] font-black uppercase tracking-widest text-slate-900 hover:text-[#FF4F00] transition-colors">{t('nav_login')}</button>
+                <button onClick={onSell} className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-[#FF4F00] transition-all shadow-xl">{t('nav_sell')}</button>
               </div>
             )}
           </div>
@@ -207,9 +208,9 @@ const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex-1 overflow-y-auto space-y-8">
             <div className="space-y-4">
-              <button onClick={() => handleMobileNav(onHome)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">Home</button>
-              <button onClick={() => handleMobileNav(onShop)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">Collectie</button>
-              <button onClick={() => handleMobileNav(onSell)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">Verkopen</button>
+              <button onClick={() => handleMobileNav(onHome)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">{t('nav_home')}</button>
+              <button onClick={() => handleMobileNav(onShop)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">{t('nav_collection')}</button>
+              <button onClick={() => handleMobileNav(onSell)} className="block w-full text-left text-3xl font-black text-slate-900 uppercase tracking-tighter hover:text-[#FF4F00]">{t('nav_sell')}</button>
             </div>
 
             <div className="border-t border-slate-100 pt-8 space-y-6">
@@ -256,13 +257,13 @@ const Navbar: React.FC<NavbarProps> = ({
                   </div>
                   <div className="text-sm font-bold">{user.firstName || user.email}</div>
                 </div>
-                <button onClick={() => handleMobileNav(onDashboard)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs">Dashboard</button>
-                <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-4 bg-white border-2 border-slate-100 text-rose-500 rounded-2xl font-black uppercase tracking-widest text-xs">Uitloggen</button>
+                <button onClick={() => handleMobileNav(onDashboard)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs">{t('nav_dashboard')}</button>
+                <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-4 bg-white border-2 border-slate-100 text-rose-500 rounded-2xl font-black uppercase tracking-widest text-xs">{t('nav_logout')}</button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => handleMobileNav(onOpenLogin)} className="py-4 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs">Inloggen</button>
-                <button onClick={() => handleMobileNav(onSell)} className="py-4 bg-[#FF4F00] text-white rounded-2xl font-black uppercase tracking-widest text-xs">Registreren</button>
+                <button onClick={() => handleMobileNav(onOpenLogin)} className="py-4 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-xs">{t('nav_login')}</button>
+                <button onClick={() => handleMobileNav(onSell)} className="py-4 bg-[#FF4F00] text-white rounded-2xl font-black uppercase tracking-widest text-xs">{t('auth_btn_register')}</button>
               </div>
             )}
           </div>

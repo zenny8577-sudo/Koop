@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, User } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface LoginViewProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
   const [passwordStrength, setPasswordStrength] = useState<number>(0);
   
   const { signIn, signUp, loading, error: authError } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (email) {
@@ -120,7 +122,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               activeTab === 'login' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'
             }`}
           >
-            Inloggen
+            {t('auth_login_tab')}
           </button>
           <button 
             onClick={() => handleTabChange('register')}
@@ -128,7 +130,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               activeTab === 'register' ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'
             }`}
           >
-            Registreren
+            {t('auth_register_tab')}
           </button>
         </div>
 
@@ -148,7 +150,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="E-MAILADRES"
+              placeholder={t('auth_email_placeholder')}
               className={`w-full bg-slate-50 border-2 rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 outline-none transition-all ${
                 emailValid === false ? 'border-rose-100 focus:border-rose-300' : 
                 emailValid === true ? 'border-emerald-100 focus:border-emerald-300' : 
@@ -168,7 +170,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="WACHTWOORD"
+              placeholder={t('auth_pass_placeholder')}
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:border-[#FF4F00]/20 outline-none transition-all"
             />
             {activeTab === 'register' && password.length > 0 && (
@@ -196,7 +198,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   type="text"
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
-                  placeholder="VOORNAAM"
+                  placeholder={t('auth_first_name')}
                   className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 />
               </div>
@@ -206,7 +208,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   type="text"
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
-                  placeholder="ACHTERNAAM"
+                  placeholder={t('auth_last_name')}
                   className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all"
                 />
               </div>
@@ -217,7 +219,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   required
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="BEVESTIG WACHTWOORD"
+                  placeholder={t('auth_confirm_pass')}
                   className={`w-full bg-slate-50 border-2 rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 outline-none transition-all ${
                     confirmPassword && confirmPassword !== password ? 'border-rose-100' : 'border-transparent'
                   }`}
@@ -230,8 +232,8 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   onChange={e => setRole(e.target.value as UserRole)}
                   className="w-full bg-slate-50 border-none rounded-2xl px-8 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-4 focus:ring-orange-500/10 outline-none transition-all cursor-pointer"
                 >
-                  <option value={UserRole.BUYER}>Ik wil kopen</option>
-                  <option value={UserRole.SELLER}>Ik wil verkopen</option>
+                  <option value={UserRole.BUYER}>{t('auth_role_buyer')}</option>
+                  <option value={UserRole.SELLER}>{t('auth_role_seller')}</option>
                 </select>
               </div>
               
@@ -241,7 +243,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
                   required
                   className="w-4 h-4 text-[#FF4F00] border-slate-200 rounded focus:ring-[#FF4F00]"
                 />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ik accepteer de voorwaarden</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('auth_terms')}</span>
               </div>
             </div>
           )}
@@ -251,7 +253,7 @@ const LoginView: React.FC<LoginViewProps> = ({ isOpen, onClose, onSuccess }) => 
             disabled={loading}
             className="w-full py-6 bg-slate-950 text-white font-black rounded-3xl uppercase tracking-widest text-[11px] shadow-xl hover:bg-[#FF4F00] transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Verwerken...' : activeTab === 'login' ? 'Inloggen' : 'Registreren'}
+            {loading ? t('auth_processing') : activeTab === 'login' ? t('auth_btn_login') : t('auth_btn_register')}
           </button>
         </form>
       </div>
