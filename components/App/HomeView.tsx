@@ -41,22 +41,22 @@ const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="space-y-24 lg:space-y-40 pb-20 lg:pb-60 animate-fadeIn overflow-hidden">
       {/* Hero Section */}
-      <section className="relative h-[80vh] lg:h-[95vh] flex items-center px-6 lg:px-24 mx-4 lg:mx-12 rounded-[40px] lg:rounded-[120px] overflow-hidden bg-black mt-4 lg:mt-8 group border border-transparent dark:border-white/10">
+      <section className="relative min-h-[85vh] lg:h-[95vh] flex flex-col justify-center px-6 lg:px-24 mx-2 lg:mx-12 rounded-[40px] lg:rounded-[120px] overflow-hidden bg-black mt-2 lg:mt-8 group border border-transparent dark:border-white/10 py-12 lg:py-0">
         <div className="absolute inset-0 z-0 scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out">
           <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=90&w=2400" className="w-full h-full object-cover opacity-50" alt="Dutch Tech Design" />
           <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/40 to-transparent" />
         </div>
-        <div className="relative z-10 max-w-5xl space-y-8 lg:space-y-14">
-          <div className="space-y-4">
-            <span className="inline-block px-4 py-2 lg:px-5 lg:py-2.5 bg-[#FF4F00]/10 text-[#FF4F00] text-[9px] lg:text-[11px] font-black uppercase tracking-[0.3em] lg:tracking-[0.4em] rounded-full border border-[#FF4F00]/20 backdrop-blur-md">De Nederlandse Premium Standaard</span>
-            <h1 className="text-5xl md:text-7xl lg:text-[160px] font-black text-white leading-[0.9] lg:leading-[0.8] tracking-tighter uppercase">
+        <div className="relative z-10 max-w-5xl space-y-6 lg:space-y-14">
+          <div className="space-y-3 lg:space-y-4">
+            <span className="inline-block px-3 py-1.5 lg:px-5 lg:py-2.5 bg-[#FF4F00]/10 text-[#FF4F00] text-[8px] lg:text-[11px] font-black uppercase tracking-[0.2em] lg:tracking-[0.4em] rounded-full border border-[#FF4F00]/20 backdrop-blur-md whitespace-nowrap">De Nederlandse Premium Standaard</span>
+            <h1 className="text-[42px] sm:text-6xl lg:text-[160px] font-black text-white leading-[0.9] lg:leading-[0.8] tracking-tighter uppercase break-words hyphens-auto">
               HERGEBRUIKTE <br /> <span className="text-[#FF4F00]">MEESTERWERKEN.</span>
             </h1>
           </div>
-          <p className="text-white/60 text-base lg:text-2xl font-medium max-w-2xl leading-relaxed">Amsterdam's meest exclusieve marktplaats voor geverifieerde tech en designmeubels. Gecureerd door experts, geleverd met zorg.</p>
-          <div className="flex flex-col sm:flex-row gap-4 lg:gap-8 pt-4 lg:pt-6">
-            <button onClick={() => onNavigate('shop')} className="w-full sm:w-auto px-8 lg:px-16 py-6 lg:py-8 bg-[#FF4F00] text-white font-black text-[10px] lg:text-xs uppercase tracking-[0.3em] rounded-[24px] lg:rounded-[32px] hover:bg-white hover:text-black transition-all transform hover:-translate-y-2 shadow-2xl shadow-orange-500/20">Shop de Collectie</button>
-            <button onClick={() => onNavigate('sell')} className="w-full sm:w-auto px-8 lg:px-16 py-6 lg:py-8 bg-white/5 backdrop-blur-xl text-white border border-white/10 font-black text-[10px] lg:text-xs uppercase tracking-[0.3em] rounded-[24px] lg:rounded-[32px] hover:bg-white/10 transition-all">Start Verkoop</button>
+          <p className="text-white/60 text-sm lg:text-2xl font-medium max-w-2xl leading-relaxed pr-4 lg:pr-0">Amsterdam's meest exclusieve marktplaats voor geverifieerde tech en designmeubels. Gecureerd door experts, geleverd met zorg.</p>
+          <div className="flex flex-col sm:flex-row gap-3 lg:gap-8 pt-4 lg:pt-6 w-full sm:w-auto">
+            <button onClick={() => onNavigate('shop')} className="w-full sm:w-auto px-6 py-4 lg:px-16 lg:py-8 bg-[#FF4F00] text-white font-black text-[10px] lg:text-xs uppercase tracking-[0.3em] rounded-2xl lg:rounded-[32px] hover:bg-white hover:text-black transition-all transform hover:-translate-y-2 shadow-2xl shadow-orange-500/20">Shop de Collectie</button>
+            <button onClick={() => onNavigate('sell')} className="w-full sm:w-auto px-6 py-4 lg:px-16 lg:py-8 bg-white/5 backdrop-blur-xl text-white border border-white/10 font-black text-[10px] lg:text-xs uppercase tracking-[0.3em] rounded-2xl lg:rounded-[32px] hover:bg-white/10 transition-all">Start Verkoop</button>
           </div>
         </div>
       </section>
